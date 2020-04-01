@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="cn">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文重点：介绍 React 重构的起因和目的，理解 Fiber tree 单向链表结构中各属性含义，梳理调度过程和核心实现手段，深入新的生命周期，hooks，suspense，异常捕获等特性的用法和原理。   喜欢的就点个赞吧 ️，希望跟大家在枯燥的源码中发掘学习的乐趣，一起分享进步。  当 react 刚推出的时候，最具革命性的特性就是虚拟 dom，因为这大大降低了应用开发的难度，相比较以往告">
+<meta property="og:type" content="article">
+<meta property="og:title" content="走进Fiber">
+<meta property="og:url" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2020&#x2F;04&#x2F;01&#x2F;%E8%B5%B0%E8%BF%9Bfiber&#x2F;index.html">
+<meta property="og:site_name" content="intopiece">
+<meta property="og:description" content="本文重点：介绍 React 重构的起因和目的，理解 Fiber tree 单向链表结构中各属性含义，梳理调度过程和核心实现手段，深入新的生命周期，hooks，suspense，异常捕获等特性的用法和原理。   喜欢的就点个赞吧 ️，希望跟大家在枯燥的源码中发掘学习的乐趣，一起分享进步。  当 react 刚推出的时候，最具革命性的特性就是虚拟 dom，因为这大大降低了应用开发的难度，相比较以往告">
+<meta property="og:locale" content="cn">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf21b454462?w=1202&amp;h=740&amp;f=png&amp;s=93298">
+<meta property="og:image" content="https:&#x2F;&#x2F;ask.qcloudimg.com&#x2F;http-save&#x2F;yehe-2687933&#x2F;l5f1eqnxee.gif">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf284a718e2?w=500&amp;h=211&amp;f=gif&amp;s=509016">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf21f4a46c2?w=500&amp;h=339&amp;f=png&amp;s=40774">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf28320843d?w=720&amp;h=450&amp;f=jpeg&amp;s=98584">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9c7784955307?w=1094&amp;h=594&amp;f=jpeg&amp;s=112698">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9d2b6204e156?w=1314&amp;h=776&amp;f=jpeg&amp;s=225083">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf2280b9665?w=796&amp;h=276&amp;f=png&amp;s=37426">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf22055a622?w=794&amp;h=296&amp;f=png&amp;s=89423">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf2a8d923cc?w=644&amp;h=522&amp;f=jpeg&amp;s=40493">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf31a542dd0?w=986&amp;h=890&amp;f=jpeg&amp;s=50391">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf369989012?w=654&amp;h=578&amp;f=jpeg&amp;s=53973">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf38c4cce67?w=635&amp;h=351&amp;f=jpeg&amp;s=22245">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf3b859392c?w=1302&amp;h=472&amp;f=png&amp;s=203638">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf3d8667a1f?w=646&amp;h=63&amp;f=jpeg&amp;s=8905">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf3e17d8ba3?w=1354&amp;h=296&amp;f=png&amp;s=134124">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf40bb817f2?w=800&amp;h=260&amp;f=png&amp;s=76689">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf43cb5a49c?w=831&amp;h=594&amp;f=jpeg&amp;s=58798">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf4220b0e19?w=595&amp;h=358&amp;f=jpeg&amp;s=21862">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf43e89053a?w=673&amp;h=441&amp;f=jpeg&amp;s=31367">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf4a482c926?w=800&amp;h=438&amp;f=png&amp;s=128846">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf4de075d64?w=1262&amp;h=840&amp;f=jpeg&amp;s=96470">
+<meta property="og:updated_time" content="2020-04-01T05:58:17.430Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;12&#x2F;12&#x2F;16ef9bf21b454462?w=1202&amp;h=740&amp;f=png&amp;s=93298">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/04/01/走进fiber/"/>
+
+
+
+
+
+  <title>走进Fiber | intopiece</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="cn">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">intopiece</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Font End Developer</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/%20" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/04/01/%E8%B5%B0%E8%BF%9Bfiber/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="intopiece">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="intopiece">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">走进Fiber</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-04-01T13:54:00+08:00">
+                2020-04-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>本文重点：介绍 React 重构的起因和目的，理解 Fiber tree 单向链表结构中各属性含义，梳理调度过程和核心实现手段，深入新的生命周期，hooks，suspense，异常捕获等特性的用法和原理。</p>
+</blockquote>
+<blockquote>
+<p>喜欢的就点个赞吧 ️，希望跟大家在枯燥的源码中发掘学习的乐趣，一起分享进步。</p>
+</blockquote>
+<p>当 react 刚推出的时候，最具革命性的特性就是虚拟 dom，因为这大大降低了应用开发的难度，相比较以往告诉浏览器我需要怎么更新我的 ui，现在我们只需要告诉 react 我应用 ui 的下个状态是怎么样的，react 会帮我们自动处理两者之间的所有事宜。</p>
+<p>这让我们可以从属性操作、事件处理和手动 DOM 更新这些在构建应用程序时必要的操作中解放出来。宿主树的概念让这个优秀的框架有无限的可能性，react native 便是其在原生移动应用中伟大的实现。</p>
+<p>但在享受舒适开发体验的同时，有一些疑问一直萦绕在我们脑海中：</p>
+<ul>
+<li>是什么导致了 react 用户交互、动画频繁卡顿</li>
+<li>如何视线优雅的异常处理，进行异常捕获和备用 ui 渲染</li>
+<li>如何更好实现组件的复用和状态管理<!--- setState为啥是异步的-->
+<!--react性能优化何去何从  -->
+这究竟是人性的扭曲，还是道德的沦丧 /狗头</li>
+</ul>
+<p>Fiber 能否给我们答案，又将带给我们什么惊喜，卷起一波新的浪潮，欢迎收看《走进 Fiber》</p>
+<!--是什么驱动react核心团队对其核心算法进行重构  -->
+<!--他们又将有带给我们什么惊喜，卷起一波新的浪潮呢？  -->
+
+<p>那么，简而言之，React Fiber 是什么？</p>
+<blockquote>
+<p><strong>Fiber</strong>是对 React 核心算法的重构，2 年重构的产物就是 Fiber reconciler。</p>
+</blockquote>
+<h2 id="react-协调是什么"><a href="#react-协调是什么" class="headerlink" title="react 协调是什么"></a>react 协调是什么</h2><p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf21b454462?w=1202&h=740&f=png&s=93298" alt=""></p>
+<blockquote>
+<p>协调是 react 中重要的一部分，其中包含了如何对新旧树差异进行比较以达到仅更新差异的部分。</p>
+</blockquote>
+<p>现在的 react 经过重构后 Reconciliation 和 Rendering 被分为两个不同的阶段。</p>
+<ul>
+<li><strong>reconciler 协调阶段</strong>：当组件次初始化和其后的状态更新中，React 会创建两颗不相同的虚拟树，React 需要基于这两棵树之间的差别来判断如何有效率的更新 UI 以保证当前 UI 与最新的树保持同步，计算树哪些部分需要更新。</li>
+<li><strong>renderer 阶段</strong>：渲染器负责将拿到的虚拟组件树信息，根据其对应环境真实地更新渲染到应用中。有兴趣的朋友可以看一下 dan 自己的博客中的文章=》<a href="https://overreacted.io/react-as-a-ui-runtime/#renderers" target="_blank" rel="noopener">运行时的 react=》渲染器</a>，介绍了 react 的 Renderer 渲染器如 react-dom 和 react native 等，其可以根据不同的主环境来生成不同的实例。</li>
+</ul>
+<h2 id="为什么要重写协调"><a href="#为什么要重写协调" class="headerlink" title="为什么要重写协调"></a>为什么要重写协调</h2><!--线程：-->
+<!--进程：-->
+<!--为什么是单线程：-->
+
+<blockquote>
+<p>动画是指由许多帧静止的画面，以一定的速度（如每秒 16 张）连续播放时，肉眼因视觉残象产生错觉，而误以为画面活动的作品。——维基百科</p>
+</blockquote>
+<p>老一辈人常常把电影称为“移动的画”，我们小时候看的手翻书就是快速翻动的一页页画，其本质上实现原理跟动画是一样的。</p>
+<!--<img src="https://ask.qcloudimg.com/http-save/yehe-2687933/l5f1eqnxee.gif" width="300">-->
+
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf284a718e2?w=500&h=211&f=gif&s=509016" alt=""><br>帧：在动画过程中，每一幅静止画面即为一“帧”；<br> 帧率：是用于测量显示帧数的量度，测量单位为“每秒显示帧数”（Frame per Second，FPS）或“赫兹”；<br> 帧时长：即每一幅静止画面的停留时间，单位一般是 ms(毫秒)；<br> 丢帧：在帧率固定的动画中，某一帧的时长远高于平均帧时长，导致其后续数帧被挤压而丢失的现象；</p>
+<p>当前大部分笔记本电脑和手机的常见帧率为 60hz，即一秒显示 60 帧的画面，一帧停留的时间为 16.7ms(1000/60≈16.7)，这就留给了开发者和 UI 系统大约 16.67ms 来完成生成一张静态图片（帧）所需要的所有工作。如果在这分派的 16.67ms 之内没有能够完成这些工作，就会引发‘丢帧’的后果，使界面表现的不够流畅。</p>
+<p>浏览器中的 GUI 渲染线程和 JS 引擎线程</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf21f4a46c2?w=500&h=339&f=png&s=40774" alt=""></p>
+<blockquote>
+<p>在浏览器中 GUI 渲染线程与 JS 引擎线程是互斥的，当 JS 引擎执行时 GUI 线程会被挂起（相当于被冻结了），GUI 更新会被保存在一个队列中等到 JS 引擎空闲时立即被执行。</p>
+</blockquote>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf28320843d?w=720&h=450&f=jpeg&s=98584" alt=""><br>浏览器拥挤的主线程</p>
+<p>React16 推出 Fiber 之前协调算法是 Stack Reconciler，即递归遍历所有的 Virtual DOM 节点执行 Diff 算法，一旦开始便无法中断，直到整颗虚拟 dom 树构建完成后才会释放主线程，因其 JavaScript 单线程的特点，若当下组件具有复杂的嵌套和逻辑处理，diff 便会堵塞 UI 进程，使动画和交互等优先级相对较高的任务无法立即得到处理，造成页面卡顿掉帧，影响用户体验。</p>
+<p>16 年在 facebook 上 Seb 正式提到了 Fiber 这个概念，解释为什么要重写框架：</p>
+<blockquote>
+<p>Once you have each stack frame as an object on the heap you can do clever things like reusing it during future updates and yielding to the event loop without losing any of your currently in progress data.<br>一旦将每个堆栈帧作为堆上的对象，您就可以做一些聪明的事情，例如在将来的更新中重用它并暂停于事件循环，而不会丢失任何当前正在进行的数据。</p>
+</blockquote>
+<p>我们来做一个实验</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">function randomHexColor() &#123;</span><br><span class="line">  return (</span><br><span class="line">    &quot;#&quot; + (&quot;0000&quot; + ((Math.random() * 0x1000000) &lt;&lt; 0).toString(16)).substr(-6)</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">var root = document.getElementById(&quot;root&quot;);</span><br><span class="line"></span><br><span class="line">// 一次性遍历100000次</span><br><span class="line">function a() &#123;</span><br><span class="line">  setTimeout(function() &#123;</span><br><span class="line">    var k = 0;</span><br><span class="line">    for (var i = 0; i &lt; 10000; i++) &#123;</span><br><span class="line">      k += new Date() - 0;</span><br><span class="line">      var el = document.createElement(&quot;div&quot;);</span><br><span class="line">      el.innerHTML = k;</span><br><span class="line">      root.appendChild(el);</span><br><span class="line">      el.style.cssText = `background:$&#123;randomHexColor()&#125;;height:40px`;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;, 1000);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 每次只操作100个节点，共100次</span><br><span class="line">function b() &#123;</span><br><span class="line">  setTimeout(function() &#123;</span><br><span class="line">    function loop(n) &#123;</span><br><span class="line">      var k = 0;</span><br><span class="line">      console.log(n);</span><br><span class="line">      for (var i = 0; i &lt; 100; i++) &#123;</span><br><span class="line">        k += new Date() - 0;</span><br><span class="line">        var el = document.createElement(&quot;div&quot;);</span><br><span class="line">        el.innerHTML = k;</span><br><span class="line">        root.appendChild(el);</span><br><span class="line">        el.style.cssText = `background:$&#123;randomHexColor()&#125;;height:40px`;</span><br><span class="line">      &#125;</span><br><span class="line">      if (n) &#123;</span><br><span class="line">        setTimeout(function() &#123;</span><br><span class="line">          loop(n - 1);</span><br><span class="line">        &#125;, 40);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    loop(100);</span><br><span class="line">  &#125;, 1000);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>a 执行性能截图：掉帧严重，普遍 fps 为 1139.6ms<br><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9c7784955307?w=1094&h=594&f=jpeg&s=112698" alt=""></p>
+<p>b 执行性能截图: fps 处于 15ms ～ 19ms<br><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9d2b6204e156?w=1314&h=776&f=jpeg&s=225083" alt=""></p>
+<blockquote>
+<p>究其原因是因为浏览器的主线程需要处理 GUI 描绘，时间器处理，事件处理，JS 执行，远程资源加载等，当做某件事，只有将它做完才能做下一件事。如果有足够的时间，浏览器是会对我们的代码进行编译优化（JIT）及进行热代码优化，一些 DOM 操作，内部也会对 reflow 进行处理。reflow 是一个性能黑洞，很可能让页面的大多数元素进行重新布局。</p>
+</blockquote>
+<p>而作为一只有梦想的前端菜 🐤，为用户爸爸呈现最好的交互体验是我们义不容辞的责任，把困难扛在肩上，让我们 see see react 是如何解决以上的问题。</p>
+<h2 id="Fiber-你是个啥（第四音"><a href="#Fiber-你是个啥（第四音" class="headerlink" title="Fiber 你是个啥（第四音"></a>Fiber 你是个啥（第四音</h2><p>那么我们先看看作为看看解决方案的 Fiber 是什么，然后在分析为什么它能解决以上问题。</p>
+<h4 id="定义："><a href="#定义：" class="headerlink" title="定义："></a>定义：</h4><ol>
+<li>react Reconciliation 协调核心算法的一次重新实现</li>
+<li>虚拟堆栈帧</li>
+<li>具备扁平化的链表数据存储结构的 js 对象，Reconciliation 阶段所能拆分的最小工作单元</li>
+</ol>
+<h4 id="针对其定义我们来进行拓展："><a href="#针对其定义我们来进行拓展：" class="headerlink" title="针对其定义我们来进行拓展："></a>针对其定义我们来进行拓展：</h4><h5 id="虚拟堆栈帧："><a href="#虚拟堆栈帧：" class="headerlink" title="虚拟堆栈帧："></a>虚拟堆栈帧：</h5><p>Andrew Clark 的<a href="https://github.com/acdlite/react-fiber-architecture" target="_blank" rel="noopener">React Fiber 体系文档</a>很好地解释了 Fiber 实现背后的想法，我在这里引用一下：</p>
+<blockquote>
+<p>Fiber 是堆栈的重新实现，专门用于 React 组件。<br>您可以将单个 Fiber 视为虚拟堆栈框架。<br>重新实现堆栈的优点是，您可以将堆栈帧保留在内存中，并根据需要（以及在任何时候）执行它们。<br>这对于实现调度的目标至关重要。</p>
+</blockquote>
+<h5 id="JavaScript-的执行模型：call-stack"><a href="#JavaScript-的执行模型：call-stack" class="headerlink" title="JavaScript 的执行模型：call stack"></a>JavaScript 的执行模型：call stack</h5><p>JavaScript 原生的执行模型：通过调用栈来管理函数执行状态。<br>其中每个栈帧表示一个工作单元（a unit of work），存储了函数调用的返回指针、当前函数、调用参数、局部变量等信息。<br>因为 JavaScript 的执行栈是由引擎管理的，执行栈一旦开始，就会一直执行，直到执行栈清空。无法按需中止。</p>
+<p>react 以往的渲染就是使用原生执行栈来管理组件树的递归渲染，当其层次较深 component 不断递归子节点，无法被打断就会导致主线程堵塞 ui 卡顿。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf2280b9665?w=796&h=276&f=png&s=37426" alt=""></p>
+<h5 id="可控的调用栈"><a href="#可控的调用栈" class="headerlink" title="可控的调用栈"></a>可控的调用栈</h5><p>所以理想状况下 reconciliation 的过程应该是像下图所示一样，将繁重的任务划分成一个个小的工作单元，做完后能够“喘口气儿”。我们需要一种增量渲染的调度，Fiber 就是重新实现一个堆栈帧的调度，这个堆栈帧可以按照自己的调度算法执行他们。另外由于这些堆栈是可将可中断的任务拆分成多个子任务，通过按照优先级来自由调度子任务，分段更新，从而将之前的同步渲染改为异步渲染。</p>
+<p>它的特性就是时间分片(time slicing)和暂停(supense)。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf22055a622?w=794&h=296&f=png&s=89423" alt=""></p>
+<h4 id="具备扁平化的链表数据存储结构的-js-对象："><a href="#具备扁平化的链表数据存储结构的-js-对象：" class="headerlink" title="具备扁平化的链表数据存储结构的 js 对象："></a>具备扁平化的链表数据存储结构的 js 对象：</h4><p>fiber 是一个 js 对象，fiber 的创建是通过 React 元素来创建的，在整个 React 构建的虚拟 DOM 树中，每一个元素都对应有一个 fiber，从而构建了一棵 fiber 树，每个 fiber 不仅仅包含每个元素的信息，还包含更多的信息，以方便 Scheduler 来进行调度。</p>
+<p>让我们看一下 fiber 的结构</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line">type Fiber = &#123;|</span><br><span class="line">  // 标记不同的组件类型</span><br><span class="line">  //export const FunctionComponent = 0;</span><br><span class="line">  //export const ClassComponent = 1;</span><br><span class="line">  //export const HostRoot = 3； 可以理解为这个fiber是fiber树的根节点，根节点可以嵌套在子树中</span><br><span class="line">  //export const Fragment = 7;</span><br><span class="line">  //export const SuspenseComponent = 13;</span><br><span class="line">  //export const MemoComponent = 14;</span><br><span class="line">  //export const LazyComponent = 16;</span><br><span class="line">  tag: WorkTag,</span><br><span class="line"></span><br><span class="line">  // ReactElement里面的key</span><br><span class="line">  // 唯一标示。我们在写React的时候如果出现列表式的时候，需要制定key，这key就是对应元素的key。</span><br><span class="line">  key: null | string,</span><br><span class="line"></span><br><span class="line">  // ReactElement.type，也就是我们调用`createElement`的第一个参数</span><br><span class="line">  elementType: any,</span><br><span class="line"></span><br><span class="line">  // The resolved function/class/ associated with this fiber.</span><br><span class="line">  // 异步组件resolved之后返回的内容，一般是`function`或者`class`</span><br><span class="line">  type: any,</span><br><span class="line"></span><br><span class="line">  // The local state associated with this fiber.</span><br><span class="line">  // 跟当前Fiber相关本地状态（比如浏览器环境就是DOM节点）</span><br><span class="line">  // 当前组件实例的引用</span><br><span class="line">  stateNode: any,</span><br><span class="line"></span><br><span class="line">  // 指向他在Fiber节点树中的`parent`，用来在处理完这个节点之后向上返回</span><br><span class="line">  return: Fiber | null,</span><br><span class="line"></span><br><span class="line">  // 单链表树结构</span><br><span class="line">  // 指向自己的第一个子节点</span><br><span class="line">  child: Fiber | null,</span><br><span class="line">  // 指向自己的兄弟结构</span><br><span class="line">  // 兄弟节点的return指向同一个父节点</span><br><span class="line">  sibling: Fiber | null,</span><br><span class="line">  index: number,</span><br><span class="line"></span><br><span class="line">  // ref属性</span><br><span class="line">  ref: null | (((handle: mixed) =&gt; void) &amp; &#123;_stringRef: ?string&#125;) | RefObject,</span><br><span class="line"></span><br><span class="line">  // 新的变动带来的新的props</span><br><span class="line">  pendingProps: any,</span><br><span class="line">  // 上一次渲染完成之后的props</span><br><span class="line">  memoizedProps: any,</span><br><span class="line"></span><br><span class="line">  // 该Fiber对应的组件产生的Update会存放在这个队列里面</span><br><span class="line">  updateQueue: UpdateQueue&lt;any&gt; | null,</span><br><span class="line"></span><br><span class="line">  // 上一次渲染的时候的state</span><br><span class="line">  // 用来存放某个组件内所有的 Hook 状态</span><br><span class="line">  memoizedState: any,</span><br><span class="line"></span><br><span class="line">  // 一个列表，存放这个Fiber依赖的context</span><br><span class="line">  firstContextDependency: ContextDependency&lt;mixed&gt; | null,</span><br><span class="line"></span><br><span class="line">  // 用来描述当前Fiber和他子树的`Bitfield`</span><br><span class="line">  // 共存的模式表示这个子树是否默认是异步渲染的</span><br><span class="line">  // Fiber被创建的时候他会继承父Fiber</span><br><span class="line">  // 其他的标识也可以在创建的时候被设置</span><br><span class="line">  // 但是在创建之后不应该再被修改，特别是他的子Fiber创建之前</span><br><span class="line">  //用来描述fiber是处于何种模式。用二进制位来表示（bitfield），后面通过与来看两者是否相同//这个字段其实是一个数字.实现定义了一下四种//NoContext: 0b000-&gt;0//AsyncMode: 0b001-&gt;1//StrictMode: 0b010-&gt;2//ProfileMode: 0b100-&gt;4</span><br><span class="line">  mode: TypeOfMode,</span><br><span class="line"></span><br><span class="line">  // Effect</span><br><span class="line">  // 用来记录Side Effect具体的执行的工作的类型：比如Placement，Update等等</span><br><span class="line">  effectTag: SideEffectTag,</span><br><span class="line"></span><br><span class="line">  // 单链表用来快速查找下一个side effect</span><br><span class="line">  nextEffect: Fiber | null,</span><br><span class="line"></span><br><span class="line">  // 子树中第一个side effect</span><br><span class="line">  firstEffect: Fiber | null,</span><br><span class="line">  // 子树中最后一个side effect</span><br><span class="line">  lastEffect: Fiber | null,</span><br><span class="line"></span><br><span class="line">  // 代表任务在未来的哪个时间点应该被完成</span><br><span class="line">  // 不包括他的子树产生的任务</span><br><span class="line">  // 通过这个参数也可以知道是否还有等待暂停的变更、没有完成变更。</span><br><span class="line">  // 这个参数一般是UpdateQueue中最长过期时间的Update相同，如果有Update的话。</span><br><span class="line">  expirationTime: ExpirationTime,</span><br><span class="line"></span><br><span class="line">  // 快速确定子树中是否有不在等待的变化</span><br><span class="line">  childExpirationTime: ExpirationTime,</span><br><span class="line"></span><br><span class="line">  //当前fiber对应的工作中的Fiber。</span><br><span class="line">  // 在Fiber树更新的过程中，每个Fiber都会有一个跟其对应的Fiber</span><br><span class="line">  // 我们称他为 current &lt;==&gt; workInProgress</span><br><span class="line">  // 在渲染完成之后他们会交换位置</span><br><span class="line">  alternate: Fiber | null,</span><br><span class="line">  ...</span><br><span class="line">|&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://github.com/facebook/react/blob/master/packages/shared/ReactWorkTags.js" target="_blank" rel="noopener">ReactWorkTags 组件类型</a></p>
+<h3 id="链表结构"><a href="#链表结构" class="headerlink" title="链表结构"></a>链表结构</h3><p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf2a8d923cc?w=644&h=522&f=jpeg&s=40493" alt=""><br>fiber 中最为重要的是 return、child、sibling 指针，连接父子兄弟节点以构成一颗单链表 fiber 树，其扁平化的单链表结构的特点将以往递归遍历改为了循环遍历，实现深度优先遍历。<!--三个属性串联了整个应用，能够以很高的效率把整个应用遍历完。--></p>
+<!--在任何时候一个组件实例只有两个Fiber=>current和workinprogress。-->
+
+<p>React16 特别青睐于链表结构，链表在内存里不是连续的，动态分配，增删方便，轻量化，对异步友好</p>
+<!--![image](http://pz5ikgh3i.bkt.clouddn.com/20190128102004436.png)-->
+
+<h3 id="current-与-workInProgress"><a href="#current-与-workInProgress" class="headerlink" title="current 与 workInProgress"></a>current 与 workInProgress</h3><p><strong>current 树</strong>：React 在 render 第一次渲染时，会通过 React.createElement 创建一颗 Element 树，可以称之为 Virtual DOM Tree，由于要记录上下文信息，加入了 Fiber，每一个 Element 会对应一个 Fiber Node，将 Fiber Node 链接起来的结构成为 Fiber Tree。它反映了用于渲染 UI 和映射应用状态。这棵树通常被称为 current 树（当前树，记录当前页面的状态）。</p>
+<p><strong>workInProgress 树</strong>：当 React 经过 current 当前树时，对于每一个先存在的 fiber 节点，它都会创建一个替代（alternate）节点，这些节点组成了 workInProgress 树。这个节点是使用 render 方法返回的 React 元素的数据创建的。一旦更新处理完以及所有相关工作完成，React 就有一颗替代树来准备刷新屏幕。一旦这颗 workInProgress 树渲染（render）在屏幕上，它便成了当前树。下次进来会把 current 状态复制到 WIP 上，进行交互复用，而不用每次更新的时候都创建一个新的对象，消耗性能。这种同时缓存两棵树进行引用替换的技术被称为<strong>双缓冲技术</strong>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">function createWorkInProgress(current, ...) &#123;</span><br><span class="line">  let workInProgress = current.alternate;</span><br><span class="line">  if (workInProgress === null) &#123;</span><br><span class="line">    workInProgress = createFiber(...);</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">  workInProgress.alternate = current;</span><br><span class="line">  current.alternate = workInProgress;</span><br><span class="line">  ...</span><br><span class="line">  return workInProgress;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf31a542dd0?w=986&h=890&f=jpeg&s=50391" alt=""><br><strong>alternate</strong> fiber 可以理解为一个 fiber 版本池，用于交替记录组件更新（切分任务后变成多阶段更新）过程中 fiber 的更新，因为在组件更新的各阶段，更新前及更新过程中 fiber 状态并不一致，在需要恢复时（如发生冲突），即可使用另一者直接回退至上一版本 fiber。</p>
+<p>Dan 在<a href="https://reactjs.org/blog/2018/03/01/sneak-peek-beyond-react-16.html" target="_blank" rel="noopener">Beyond React 16</a>演讲中用了一个非常恰当的比喻，那就是 Git 功能分支，你可以将 WIP 树想象成从旧树中 Fork 出来的功能分支，你在这新分支中添加或移除特性，即使是操作失误也不会影响旧的分支。当你这个分支经过了测试和完善，就可以合并到旧分支，将其替换掉。</p>
+<!--### FiberRoot-->
+<!--应用的起点-->
+
+<h3 id="Update"><a href="#Update" class="headerlink" title="Update"></a>Update</h3><ul>
+<li>用于记录组件状态的改变</li>
+<li>存放于 fiber 的 updateQueue 里面</li>
+<li>多个 update 同时存在</li>
+</ul>
+<p>比如设置三个 setState()，React 是不会立即更新的，而是放到 UpdateQueue 中，再去更新</p>
+<blockquote>
+<p>ps: setState 一直有人疑问为啥不是同步，将 setState() 视为请求而不是立即更新组件的命令。为了更好的感知性能，React 会延迟调用它，然后通过一次传递更新多个组件。React 并不会保证 state 的变更会立即生效。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">export function createUpdate(</span><br><span class="line">  expirationTime: ExpirationTime,</span><br><span class="line">  suspenseConfig: null | SuspenseConfig,</span><br><span class="line">): Update&lt;*&gt; &#123;</span><br><span class="line">  let update: Update&lt;*&gt; = &#123;</span><br><span class="line">    //任务过期事件</span><br><span class="line">    //在创建每个更新的时候，需要设定过期时间，过期时间也就是优先级。过期时间越长，就表示优先级越低。</span><br><span class="line">    expirationTime,</span><br><span class="line">    // suspense的配置</span><br><span class="line">    suspenseConfig,</span><br><span class="line"></span><br><span class="line">  // export const UpdateState = 0; 表示更新State</span><br><span class="line">  // export const ReplaceState = 1; 表示替换State</span><br><span class="line">  // export const ForceUpdate = 2; 强制更新</span><br><span class="line">  // export const CaptureUpdate = 3; 捕获更新（发生异常错误的时候发生）</span><br><span class="line">  // 指定更新的类型，值为以上几种</span><br><span class="line">    tag: UpdateState,</span><br><span class="line">    // 更新内容，比如`setState`接收的第一个参数</span><br><span class="line">    payload: null,</span><br><span class="line">    // 更新完成后的回调，`setState`，`render`都有</span><br><span class="line">    callback: null,</span><br><span class="line"></span><br><span class="line">    // 指向下一个update</span><br><span class="line">    // 单链表update queue通过 next串联</span><br><span class="line">    next: null,</span><br><span class="line"></span><br><span class="line">    // 下一个side effect</span><br><span class="line">    // 最新源码被抛弃 next替换</span><br><span class="line">    //nextEffect: null,</span><br><span class="line">  &#125;;</span><br><span class="line">  if (__DEV__) &#123;</span><br><span class="line">    update.priority = getCurrentPriorityLevel();</span><br><span class="line">  &#125;</span><br><span class="line">  return update;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="UpdateQueue"><a href="#UpdateQueue" class="headerlink" title="UpdateQueue"></a>UpdateQueue</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">//创建更新队列</span><br><span class="line">export function createUpdateQueue&lt;State&gt;(baseState: State): UpdateQueue&lt;State&gt; &#123;</span><br><span class="line">  const queue: UpdateQueue&lt;State&gt; = &#123;</span><br><span class="line">    //应用更新后的state</span><br><span class="line">    baseState,</span><br><span class="line">    //队列中的第一个update</span><br><span class="line">    firstUpdate: null,</span><br><span class="line">    //队列中的最后一个update</span><br><span class="line">    lastUpdate: null,</span><br><span class="line">     //队列中第一个捕获类型的update</span><br><span class="line">    firstCapturedUpdate: null,</span><br><span class="line">    //队列中最后一个捕获类型的update</span><br><span class="line">    lastCapturedUpdate: null,</span><br><span class="line">    //第一个side effect</span><br><span class="line">    firstEffect: null,</span><br><span class="line">    //最后一个side effect</span><br><span class="line">    lastEffect: null,</span><br><span class="line">    firstCapturedEffect: null,</span><br><span class="line">    lastCapturedEffect: null,</span><br><span class="line">  &#125;;</span><br><span class="line">  return queue;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>update 中的 payload：通常我们现在在调用 setState 传入的是一个对象，但在使用 fiber conciler 时，必须传入一个函数，函数的返回值是要更新的 state。react 从很早的版本就开始支持这种写法了，不过通常没有人用。在之后的 react 版本中，可能会废弃直接传入对象的写法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">setState(&#123;&#125;, callback); // stack conciler</span><br><span class="line">setState(() =&gt; &#123; return &#123;&#125; &#125;, callback); // fiber conciler</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://github.com/facebook/react/blob/0f3838a01b0fda0ac5fd054c6be13166697a113c/packages/react-reconciler/src/ReactUpdateQueue.js" target="_blank" rel="noopener">ReactUpdateQueue 源码</a></p>
+<h4 id="Updater"><a href="#Updater" class="headerlink" title="Updater"></a>Updater</h4><p>每个组件都会有一个 Updater 对象，它的用处就是把组件元素更新和对应的 fiber 关联起来。监听组件元素的更新，并把对应的更新放入该元素对应的 fiber 的 UpdateQueue 里面，并且调用 ScheduleWork 方法，把最新的 fiber 让 scheduler 去调度工作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">const classComponentUpdater = &#123;</span><br><span class="line">  isMounted,</span><br><span class="line">  enqueueSetState(inst, payload, callback) &#123;</span><br><span class="line">    const fiber = getInstance(inst);</span><br><span class="line">    const currentTime = requestCurrentTimeForUpdate();</span><br><span class="line">    const suspenseConfig = requestCurrentSuspenseConfig();</span><br><span class="line">    const expirationTime = computeExpirationForFiber(</span><br><span class="line">      currentTime,</span><br><span class="line">      fiber,</span><br><span class="line">      suspenseConfig,</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    const update = createUpdate(expirationTime, suspenseConfig);</span><br><span class="line">    update.payload = payload;</span><br><span class="line">    if (callback !== undefined &amp;&amp; callback !== null) &#123;</span><br><span class="line">      if (__DEV__) &#123;</span><br><span class="line">        warnOnInvalidCallback(callback, &apos;setState&apos;);</span><br><span class="line">      &#125;</span><br><span class="line">      update.callback = callback;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    enqueueUpdate(fiber, update);</span><br><span class="line">    scheduleWork(fiber, expirationTime);</span><br><span class="line">  &#125;,</span><br><span class="line">  enqueueReplaceState(inst, payload, callback) &#123;</span><br><span class="line">    //一样的代码</span><br><span class="line">    //...</span><br><span class="line">    update.tag = ReplaceState;</span><br><span class="line">    //...</span><br><span class="line">  &#125;,</span><br><span class="line">  enqueueForceUpdate(inst, callback) &#123;</span><br><span class="line">    //一样的代码</span><br><span class="line">    //...</span><br><span class="line">    update.tag = ForceUpdate;</span><br><span class="line">    //...</span><br><span class="line">  &#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://github.com/facebook/react/blob/9ac42dd074c42b66ecc0334b75200b1d2989f892/packages/react-reconciler/src/ReactFiberClassComponent.js#L182" target="_blank" rel="noopener">ReactUpdateQueue=&gt;classComponentUpdater</a></p>
+<h3 id="Effect-list"><a href="#Effect-list" class="headerlink" title="Effect list"></a>Effect list</h3><p><strong>Side Effects</strong>:我们可以将 React 中的一个组件视为一个使用 state 和 props 来计算 UI 的函数。每个其他活动，如改变 DOM 或调用生命周期方法，都应该被认为是 side-effects，react 文档中是这样描述的 side-effects 的：</p>
+<blockquote>
+<p>You’ve likely performed data fetching, subscriptions, or manually changing the DOM 的 from React components before. We call these operations “side effects” (or “effects” for short) because they can affect other components and can’t be done during rendering.</p>
+</blockquote>
+<!--可以看到大多数state和props更新将side-effects。由于应用effects是一种work，fiber节点是一种方便的机制，可以跟踪除更新之外的effects。每个fiber节点都可以具有与之相关的effects, 通过fiber节点中的effectTag字段表示。-->
+
+<p>React 能够非常快速地更新，并且为了实现高性能，它采用了一些有趣的技术。其中之一是构建带有 side-effects 的 fiber 节点的线性列表，其具有快速迭代的效果。迭代线性列表比树快得多，并且没有必要在没有 side effects 的节点上花费时间。</p>
+<p>每个 fiber 节点都可以具有与之相关的 effects, 通过 fiber 节点中的 effectTag 字段表示。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf369989012?w=654&h=578&f=jpeg&s=53973" alt=""><br><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf38c4cce67?w=635&h=351&f=jpeg&s=22245" alt=""></p>
+<p>此列表的目标是标记具有 DOM 更新或与其关联的其他 effects 的节点，此列表是 WIP tree 的子集，并使用 nextEffect 属性，而不是 current 和 workInProgress 树中使用的 child 属性进行链接。</p>
+<h2 id="How-it-work"><a href="#How-it-work" class="headerlink" title="How it work"></a>How it work</h2><h4 id="核心目标"><a href="#核心目标" class="headerlink" title="核心目标"></a>核心目标</h4><ul>
+<li>把可中断的工作拆分成多个小任务</li>
+<li>为不同类型的更新分配任务优先级</li>
+<li>更新时能够暂停，终止，复用渲染任务</li>
+</ul>
+<h3 id="更新过程概述"><a href="#更新过程概述" class="headerlink" title="更新过程概述"></a>更新过程概述</h3><!--- ReactDOM.render() 和 setState 的时候开始创建更新。-->
+<!--- 将创建的更新加入任务队列，等待调度。-->
+<!--- 在 requestIdleCallback 空闲时执行任务。-->
+<!--- 从根节点开始遍历 Fiber Node，并且构建 WokeInProgress Tree。-->
+<!--- 生成 EffectList。-->
+<!--- 根据 EffectList 更新 DOM。-->
+
+<p>我们先看看其 Fiber 的更新过程，然后再针对过程中的核心技术进行展开。</p>
+<p>Reconciliation 分为两个阶段：reconciliation 和 commit</p>
+<h4 id="reconciliation"><a href="#reconciliation" class="headerlink" title="reconciliation"></a>reconciliation</h4><p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf3b859392c?w=1302&h=472&f=png&s=203638" alt=""><br>从图中可以看到，可以把 reconciler 阶段分为三部分，分别以红线划分。简单的概括下三部分的工作：</p>
+<ol>
+<li>第一部分从 ReactDOM.render() 方法开始，把接收的 React Element 转换为 Fiber 节点，并为其设置优先级，记录 update 等。这部分主要是一些数据方面的准备工作。</li>
+<li>第二部分主要是三个函数：scheduleWork、requestWork、performWork，即安排工作、申请工作、正式工作三部曲。React 16 新增的异步调用的功能则在这部分实现。</li>
+<li>第三部分是一个大循环，遍历所有的 Fiber 节点，通过 Diff 算法计算所有更新工作，产出 EffectList 给到 commit 阶段使用。这部分的核心是 beginWork 函数。</li>
+</ol>
+<h4 id="commit-阶段"><a href="#commit-阶段" class="headerlink" title="commit 阶段"></a>commit 阶段</h4><p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf3d8667a1f?w=646&h=63&f=jpeg&s=8905" alt=""></p>
+<p>这个阶段主要做的工作拿到 reconciliation 阶段产出的所有更新工作，提交这些工作并调用渲染模块（react-dom）渲染 UI。完成 UI 渲染之后，会调用剩余的生命周期函数，所以异常处理也会在这部分进行</p>
+<h3 id="分配优先级"><a href="#分配优先级" class="headerlink" title="分配优先级"></a>分配优先级</h3><!--![](https://ftp.bmp.ovh/imgs/2019/12/83174afa0d36c907.png)-->
+
+<!--在三部曲中的 requestWork函数中，会判断当前任务是同步还是异步（暂时React的异步调用功能还在开发中，未开放使用，本文后续内容是以同步任务为例），然后通过不同的方式调用任务。同步任务直接调用performWork函数立即执行，-->
+
+<p>其上所列出的 fiber 结构中有个 expirationTime。</p>
+<blockquote>
+<p>expirationTime 本质上是 fiber work 执行的优先级。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// 源码中的priorityLevel优先级划分</span><br><span class="line">export const NoWork = 0;</span><br><span class="line">// 仅仅比Never高一点 为了保证连续必须完整完成</span><br><span class="line">export const Never = 1;</span><br><span class="line">export const Idle = 2;</span><br><span class="line">export const Sync = MAX_SIGNED_31_BIT_INT;//整型最大数值，是V8中针对32位系统所设置的最大值</span><br><span class="line">export const Batched = Sync - 1;</span><br></pre></td></tr></table></figure>
+
+<!--```-->
+<!--export const ImmediatePriority: ReactPriorityLevel = 99;-->
+<!--export const UserBlockingPriority: ReactPriorityLevel = 98;-->
+<!--export const NormalPriority: ReactPriorityLevel = 97;-->
+<!--export const LowPriority: ReactPriorityLevel = 96;-->
+<!--export const IdlePriority: ReactPriorityLevel = 95;-->
+<!--// NoPriority is the absence of priority. Also React-only.-->
+<!--export const NoPriority: ReactPriorityLevel = 90;-->
+<!--```-->
+<!--```-->
+<!--export function inferPriorityFromExpirationTime(-->
+<!--  currentTime,-->
+<!--  expirationTime,-->
+<!--) {-->
+<!--  if (expirationTime === Sync) {-->
+<!--    return ImmediatePriority;-->
+<!--  }-->
+<!--  if (expirationTime === Never) {-->
+<!--    return IdlePriority;-->
+<!--  }-->
+<!--  const msUntil =-->
+<!--    expirationTimeToMs(expirationTime) - expirationTimeToMs(currentTime);-->
+<!--  if (msUntil <= 0) {-->
+<!--    return ImmediatePriority;-->
+<!--  }-->
+<!--  if (msUntil <= HIGH_PRIORITY_EXPIRATION + HIGH_PRIORITY_BATCH_SIZE) {-->
+<!--    return UserBlockingPriority;-->
+<!--  }-->
+<!--  if (msUntil <= LOW_PRIORITY_EXPIRATION + LOW_PRIORITY_BATCH_SIZE) {-->
+<!--    return NormalPriority;-->
+<!--  }-->
+
+<!--  // TODO: Handle LowPriority-->
+
+<!--  // Assume anything lower has idle priority-->
+<!--  return IdlePriority;-->
+<!--}-->
+<!--```-->
+
+<!--通过把expirationTime和currentTime化为ms单位，并计算他们的差值，通过判断差值落在哪个区间去判断属于哪个优先级。-->
+
+<p>源码中的<a href="https://github.com/facebook/react/blob/16.8.4/packages/react-reconciler/src/ReactFiberScheduler.js#L1595" target="_blank" rel="noopener">computeExpirationForFiber 函数</a>，该方法用于计算 fiber 更新任务的最晚执行时间，进行比较后，决定是否继续做下一个任务。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br><span class="line">//为fiber对象计算expirationTime</span><br><span class="line">function computeExpirationForFiber(currentTime: ExpirationTime, fiber: Fiber) &#123;</span><br><span class="line">  ...</span><br><span class="line">  // 根据调度优先级计算ExpirationTime</span><br><span class="line">    const priorityLevel = getCurrentPriorityLevel();</span><br><span class="line">    switch (priorityLevel) &#123;</span><br><span class="line">      case ImmediatePriority:</span><br><span class="line">        expirationTime = Sync;</span><br><span class="line">        break;</span><br><span class="line">        //高优先级 如由用户输入设计交互的任务</span><br><span class="line">      case UserBlockingPriority:</span><br><span class="line">        expirationTime = computeInteractiveExpiration(currentTime);</span><br><span class="line">        break;</span><br><span class="line">        // 正常的异步任务</span><br><span class="line">      case NormalPriority:</span><br><span class="line">        // This is a normal, concurrent update</span><br><span class="line">        expirationTime = computeAsyncExpiration(currentTime);</span><br><span class="line">        break;</span><br><span class="line">      case LowPriority:</span><br><span class="line">      case IdlePriority:</span><br><span class="line">        expirationTime = Never;</span><br><span class="line">        break;</span><br><span class="line">      default:</span><br><span class="line">        invariant(</span><br><span class="line">          false,</span><br><span class="line">          &apos;Unknown priority level. This error is likely caused by a bug in &apos; +</span><br><span class="line">            &apos;React. Please file an issue.&apos;,</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">export const LOW_PRIORITY_EXPIRATION = 5000</span><br><span class="line">export const LOW_PRIORITY_BATCH_SIZE = 250</span><br><span class="line"></span><br><span class="line">export function computeAsyncExpiration(</span><br><span class="line">  currentTime: ExpirationTime,</span><br><span class="line">): ExpirationTime &#123;</span><br><span class="line">  return computeExpirationBucket(</span><br><span class="line">    currentTime,</span><br><span class="line">    LOW_PRIORITY_EXPIRATION,</span><br><span class="line">    LOW_PRIORITY_BATCH_SIZE,</span><br><span class="line">  )</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">export const HIGH_PRIORITY_EXPIRATION = __DEV__ ? 500 : 150</span><br><span class="line">export const HIGH_PRIORITY_BATCH_SIZE = 100</span><br><span class="line"></span><br><span class="line">export function computeInteractiveExpiration(currentTime: ExpirationTime) &#123;</span><br><span class="line">  return computeExpirationBucket(</span><br><span class="line">    currentTime,</span><br><span class="line">    HIGH_PRIORITY_EXPIRATION,</span><br><span class="line">    HIGH_PRIORITY_BATCH_SIZE,</span><br><span class="line">  )</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function computeExpirationBucket(</span><br><span class="line">  currentTime,</span><br><span class="line">  expirationInMs,</span><br><span class="line">  bucketSizeMs,</span><br><span class="line">): ExpirationTime &#123;</span><br><span class="line">  return (</span><br><span class="line">    MAGIC_NUMBER_OFFSET -</span><br><span class="line">    ceiling(</span><br><span class="line">    // 之前的算法</span><br><span class="line">     //currentTime - MAGIC_NUMBER_OFFSET + expirationInMs / UNIT_SIZE,</span><br><span class="line">      MAGIC_NUMBER_OFFSET - currentTime + expirationInMs / UNIT_SIZE,</span><br><span class="line">      bucketSizeMs / UNIT_SIZE,</span><br><span class="line">    )</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// 我们把公式整理一下：</span><br><span class="line">// low</span><br><span class="line"> 1073741821-ceiling(1073741821-currentTime+500,25) =&gt;</span><br><span class="line"> 1073741796-((1073742321-currentTime)/25 | 0)*25</span><br><span class="line">// high</span><br><span class="line">1073741821-ceiling(1073741821-currentTime+15,10)</span><br></pre></td></tr></table></figure>
+
+<p>简单来说，最终结果是以 25 为单位向上增加的，比如说我们输入 102 - 126 之间，最终得到的结果都是 625，但是到了 127 得到的结果就是 650 了，这就是除以 25 取整的效果。</p>
+<p>即计算出的 React 低优先级 update 的 expirationTime 间隔是 25ms， React 让两个相近（25ms 内）的 update 得到相同的 expirationTime，目的就是让这两个 update 自动合并成一个 Update，从而达到批量更新的目的。就像提到的 doubleBuffer 一样，React 为提高性能，考虑得非常全面！</p>
+<p>expiration 算法源码</p>
+<ul>
+<li><a href="https://github.com/facebook/react/blob/master/packages/react-reconciler/src/ReactFiberExpirationTime.js" target="_blank" rel="noopener">ReactFiberExpirationTime</a></li>
+<li><a href="https://github.com/facebook/react/blob/969f4b5bb8302afb3eb1656784130651047c3718/packages/react-reconciler/src/SchedulerWithReactIntegration.js" target="_blank" rel="noopener">SchedulerWithReactIntegration</a></li>
+</ul>
+<p>推荐阅读：<a href="https://react.jokcy.me/book/update/expiration-time.html" target="_blank" rel="noopener">jokcy 大神解析=》expirationTime 计算</a></p>
+<h3 id="执行优先级"><a href="#执行优先级" class="headerlink" title="执行优先级"></a>执行优先级</h3><p>那么 Fiber 是如何做到异步实现不同优先级任务的协调执行的</p>
+<p>这里要介绍介绍浏览器提供的两个 API：requestIdleCallback 和 requestAnimationFrame:</p>
+<blockquote>
+<p>requestIdleCallback：<br>在浏览器空闲时段内调用的函数排队。是开发人员可以在主事件循环上执行后台和低优先级工作而不会影响延迟关键事件，如动画和输入响应。</p>
+</blockquote>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf3e17d8ba3?w=1354&h=296&f=png&s=134124" alt=""></p>
+<p>其在回调参数中 IdleDeadline 可以获取到当前帧剩余的时间。利用这个信息可以合理的安排当前帧需要做的事情，如果时间足够，那继续做下一个任务，如果时间不够就歇一歇。</p>
+<!--还可以配置timeout参数，当任务超过多少时限未被执行将被强制执行，但有可能会造成失帧。-->
+
+<blockquote>
+<p>requestAnimationFrame：告诉浏览器你希望执行一个动画，并且要求浏览器在下次重绘之前调用指定的回调函数更新动画</p>
+</blockquote>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf40bb817f2?w=800&h=260&f=png&s=76689" alt=""></p>
+<blockquote>
+<p>合作式调度:这是一种’契约‘调度，要求我们的程序和浏览器紧密结合，互相信任。比如可以由浏览器给我们分配执行时间片，我们要按照约定在这个时间内执行完毕，并将控制权还给浏览器。</p>
+</blockquote>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf43cb5a49c?w=831&h=594&f=jpeg&s=58798" alt=""><br><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf4220b0e19?w=595&h=358&f=jpeg&s=21862" alt=""></p>
+<p>Fiber 所做的就是需要分解渲染任务，然后根据优先级使用 API 调度，异步执行指定任务：</p>
+<ul>
+<li>低优先级任务由 requestIdleCallback 处理，限制任务执行时间，以切分任务，同时避免任务长时间执行，阻塞 UI 渲染而导致掉帧。</li>
+<li>高优先级任务，如动画相关的由 requestAnimationFrame 处理；</li>
+</ul>
+<p>并不是所有的浏览器都支持 requestIdleCallback，但是 React 内部实现了自己的 polyfill，所以不必担心浏览器兼容性问题。polyfill 实现主要是通过 rAF+postmessage 实现的(最新版本去掉了 rAF，有兴趣的童鞋可以看看=》<a href="https://github.com/facebook/react/blob/a2e05b6c148b25590884e8911d4d4acfcb76a487/packages/scheduler/src/forks/SchedulerHostConfig.default.js" target="_blank" rel="noopener">SchedulerHostConfig</a></p>
+<h2 id="生命周期"><a href="#生命周期" class="headerlink" title="生命周期"></a>生命周期</h2><p>因为其在协调阶段任务可被打断的特点，任务在切片后运行完一段便将控制权交还到 react 负责任务调度的模块，再根据任务的优先级，继续运行后面的任务。所以会导致某些组件渲染到一半便会打断以运行其他紧急，优先级更高的任务，运行完却不会继续之前中断的部分，而是重新开始，所以在协调的所有生命周期都会面临这种被多次调用的情况。<br>为了限制这种被多次重复调用，耗费性能的情况出现，react 官方一步步把处在协调阶段的部分生命周期进行移除。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf43e89053a?w=673&h=441&f=jpeg&s=31367" alt=""></p>
+<p>废弃：</p>
+<ul>
+<li>componentWillMount</li>
+<li>componentWillUpdate</li>
+<li>componentWillReceiveProps</li>
+</ul>
+<p>新增：</p>
+<ul>
+<li><a href="https://zh-hans.reactjs.org/docs/react-component.html#static-getderivedstatefromprops" target="_blank" rel="noopener">static getDerivedStateFromProps(props, state)</a></li>
+<li><a href="https://zh-hans.reactjs.org/docs/react-component.html#getsnapshotbeforeupdate" target="_blank" rel="noopener">getSnapshotBeforeUpdate(prevProps, prevState)</a></li>
+<li><a href="https://zh-hans.reactjs.org/docs/react-component.html#componentdidcatch" target="_blank" rel="noopener">componentDidcatch</a></li>
+<li><a href="https://zh-hans.reactjs.org/docs/react-component.html#static-getderivedstatefromerror" target="_blank" rel="noopener">staic getderivedstatefromerror</a></li>
+</ul>
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf4a482c926?w=800&h=438&f=png&s=128846" alt="newLifeCircle"></p>
+<h4 id="为什么新的生命周期用-static"><a href="#为什么新的生命周期用-static" class="headerlink" title="为什么新的生命周期用 static"></a>为什么新的生命周期用 static</h4><p>static 是 ES6 的写法，当我们定义一个函数为 static 时，就意味着无法通过 this 调用我们在类中定义的方法</p>
+<p>通过 static 的写法和函数参数，可以感觉 React 在和我说：请只根据 newProps 来设定 derived state，不要通过 this 这些东西来调用帮助方法，可能会越帮越乱。用专业术语说：getDerivedStateFromProps 应该是个纯函数，没有副作用(side effect)。</p>
+<h4 id="getDerivedStateFromError-和-componentDidCatch-之间的区别是什么？"><a href="#getDerivedStateFromError-和-componentDidCatch-之间的区别是什么？" class="headerlink" title="getDerivedStateFromError 和 componentDidCatch 之间的区别是什么？"></a>getDerivedStateFromError 和 componentDidCatch 之间的区别是什么？</h4><p>简而言之，因为所处<strong>阶段的不同</strong>而功能不同。</p>
+<p>getDerivedStateFromError 是在 reconciliation 阶段触发，所以 getDerivedStateFromError 进行捕获错误后进行组件的状态变更，不允许出现副作用。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">static getDerivedStateFromError(error) &#123;</span><br><span class="line">    // 更新 state 使下一次渲染可以显降级 UI</span><br><span class="line">    return &#123; hasError: true &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>componentDidCatch 因为在 commit 阶段，因此允许执行副作用。 它应该用于记录错误之类的情况：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">componentDidCatch(error, info) &#123;</span><br><span class="line">    // &quot;组件堆栈&quot; 例子:</span><br><span class="line">    //   in ComponentThatThrows (created by App)</span><br><span class="line">    //   in ErrorBoundary (created by App)</span><br><span class="line">    //   in div (created by App)</span><br><span class="line">    //   in App</span><br><span class="line">    logComponentStackToMyService(info.componentStack);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<!--componentDidcatch和的差别-->
+
+<!--https://stackoverflow.com/questions/52962851/whats-the-difference-between-getderivedstatefromerror-and-componentdidcatch-->
+
+<!--https://zh-hans.reactjs.org/docs/error-boundaries.html#introducing-error-boundaries-->
+
+<p>生命周期相关资料点这里=》<a href="https://blog.csdn.net/Napoleonxxx/article/details/81120854" target="_blank" rel="noopener">生命周期</a></p>
+<h2 id="Suspense"><a href="#Suspense" class="headerlink" title="Suspense"></a>Suspense</h2><p>Suspense 的实现很诡异，也备受争议。<br>用 Dan 的原话讲：你将会恨死它，然后你会爱上他。</p>
+<p><strong>Suspense</strong>功能想解决从 react 出生到现在都存在的「异步副作用」的问题，而且解决得非常的优雅，使用的是「异步但是同步的写法」.</p>
+<p>Suspense 暂时只是用于搭配 lazy 进行代码分割，在组件等待某事时“暂停”渲染的能力，并显示加载的 loading，但他的作用远远不止如此，当下在 concurrent mode 实验阶段文档下提供了一种 suspense 处理异步请求获取数据的方法。</p>
+<h3 id="用法"><a href="#用法" class="headerlink" title="用法"></a>用法</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// 懒加载组件切换时显示过渡组件</span><br><span class="line">const ProfilePage = React.lazy(() =&gt; import(&apos;./ProfilePage&apos;)); // Lazy-loaded</span><br><span class="line"></span><br><span class="line">// Show a spinner while the profile is loading</span><br><span class="line">&lt;Suspense fallback=&#123;&lt;Spinner /&gt;&#125;&gt;</span><br><span class="line">  &lt;ProfilePage /&gt;</span><br><span class="line">&lt;/Suspense&gt;</span><br></pre></td></tr></table></figure>
+
+<!--// This is not a Promise. It's a special object from our Suspense integration.-->
+<!--// 这里fetchProfileData返回的不是promise，而是一个Suspense集成的特定对象-->
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">// 异步获取数据</span><br><span class="line">import &#123; unstable_createResource &#125; from &apos;react-cache&apos;</span><br><span class="line"></span><br><span class="line">const resource = unstable_createResource((id) =&gt; &#123;</span><br><span class="line">  return fetch(`/demo/$&#123;id&#125;`)</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line">function ProfilePage() &#123;</span><br><span class="line">  return (</span><br><span class="line">    &lt;Suspense fallback=&#123;&lt;h1&gt;Loading profile...&lt;/h1&gt;&#125;&gt;</span><br><span class="line">      &lt;ProfileDetails /&gt;</span><br><span class="line">      &lt;Suspense fallback=&#123;&lt;h1&gt;Loading posts...&lt;/h1&gt;&#125;&gt;</span><br><span class="line">        &lt;ProfileTimeline /&gt;</span><br><span class="line">      &lt;/Suspense&gt;</span><br><span class="line">    &lt;/Suspense&gt;</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function ProfileDetails() &#123;</span><br><span class="line">  // Try to read user info, although it might not have loaded yet</span><br><span class="line">  const user = resource.user.read();</span><br><span class="line">  return &lt;h1&gt;&#123;user.name&#125;&lt;/h1&gt;;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function ProfileTimeline() &#123;</span><br><span class="line">  // Try to read posts, although they might not have loaded yet</span><br><span class="line">  const posts = resource.posts.read();</span><br><span class="line">  return (</span><br><span class="line">    &lt;ul&gt;</span><br><span class="line">      &#123;posts.map(post =&gt; (</span><br><span class="line">        &lt;li key=&#123;post.id&#125;&gt;&#123;post.text&#125;&lt;/li&gt;</span><br><span class="line">      ))&#125;</span><br><span class="line">    &lt;/ul&gt;</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在 render 函数中，我们可以写入一个异步请求，请求数据</li>
+<li>react 会从我们缓存中读取这个缓存</li>
+<li>如果有缓存了，直接进行正常的 render</li>
+<li>如果没有缓存，那么会抛出一个异常，这个异常是一个 promise</li>
+<li>当这个 promise 完成后（请求数据完成），react 会继续回到原来的 render 中（实际上是重新执行一遍 render），把数据 render 出来</li>
+<li>完全同步写法，没有任何异步 callback 之类的东西</li>
+</ul>
+<p>如果你还没有明白这是什么意思那我简单的表述成下面这句话：</p>
+<blockquote>
+<p>调用 render 函数-&gt;发现有异步请求-&gt;悬停，等待异步请求结果-&gt;再渲染展示数据</p>
+</blockquote>
+<p>看着是非常神奇的，用同步方法写异步，而且没有 yield/async/await，简直能把人看傻眼了。这么做的好处自然就是，我们的思维逻辑非常的简单，清楚，没有 callback，没有其他任何玩意，不能不说，看似优雅了非常多而且牛逼。</p>
+<p>官方文档指出它还将提供官方的方法进行数据获取</p>
+<h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>看一下 react 提供的 unstable_createResource 源码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">export function unstable_createResource(fetch, maybeHashInput) &#123;</span><br><span class="line">  const resource = &#123;</span><br><span class="line">    read(input) &#123;</span><br><span class="line">      ...</span><br><span class="line">      const result = accessResult(resource, fetch, input, key);</span><br><span class="line">      switch (result.status) &#123;</span><br><span class="line">        // 还未完成直接抛出自身promise</span><br><span class="line">        case Pending: &#123;</span><br><span class="line">          const suspender = result.value;</span><br><span class="line">          throw suspender;</span><br><span class="line">        &#125;</span><br><span class="line">        case Resolved: &#123;</span><br><span class="line">          const value = result.value;</span><br><span class="line">          return value;</span><br><span class="line">        &#125;</span><br><span class="line">        case Rejected: &#123;</span><br><span class="line">          const error = result.value;</span><br><span class="line">          throw error;</span><br><span class="line">        &#125;</span><br><span class="line">        default:</span><br><span class="line">          // Should be unreachable</span><br><span class="line">          return (undefined: any);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">  &#125;;</span><br><span class="line">  return resource;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://user-gold-cdn.xitu.io/2019/12/12/16ef9bf4de075d64?w=1262&h=840&f=jpeg&s=96470" alt=""></p>
+<p>为此，React 使用 Promises。<br>组件可以在其 render 方法（或在组件的渲染过程中调用的任何东西，例如新的静态 getDerivedStateFromProps）中抛出 Promise。<br>React 捕获了抛出的 Promise，并在树上寻找最接近的 Suspense 组件，Suspense 其本身具有 componentDidCatch，将 promise 当成 error 捕获，等待其执行完成其更改状态重新渲染子组件。</p>
+<p>Suspense 组件将一个元素（fallback 作为其后备道具，无论子节点在何处或为什么挂起，都会在其子树被挂起时进行渲染。</p>
+<h4 id="如何达成异常捕获"><a href="#如何达成异常捕获" class="headerlink" title="如何达成异常捕获"></a>如何达成异常捕获</h4><ol>
+<li>reconciliation 阶段的 renderRoot 函数，对应异常处理方法是 throwException</li>
+<li>commit 阶段的 commitRoot 函数，对应异常处理方法是 dispatch</li>
+</ol>
+<h4 id="reconciliation-阶段的异常捕获"><a href="#reconciliation-阶段的异常捕获" class="headerlink" title="reconciliation 阶段的异常捕获"></a>reconciliation 阶段的异常捕获</h4><p>react-reconciler 中的<a href="https://github.com/facebook/react/blob/e039e690b5c45c458dd4026f3db16bac18ed0e47/packages/react-reconciler/src/ReactFiberWorkLoop.js#L642" target="_blank" rel="noopener">performConcurrentWorkOnRoot</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">// This is the entry point for every concurrent task, i.e. anything that</span><br><span class="line">// goes through Scheduler.</span><br><span class="line">// 这里是每一个通过Scheduler的concurrent任务的入口</span><br><span class="line">function performConcurrentWorkOnRoot(root, didTimeout) &#123;</span><br><span class="line">    ...</span><br><span class="line">    do &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            //开始执行Concurrent任务直到Scheduler要求我们让步</span><br><span class="line">            workLoopConcurrent();</span><br><span class="line">            break;</span><br><span class="line">        &#125; catch (thrownValue) &#123;</span><br><span class="line">            handleError(root, thrownValue);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; while (true);</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function handleError(root, thrownValue) &#123;</span><br><span class="line">    ...</span><br><span class="line">      throwException(</span><br><span class="line">        root,</span><br><span class="line">        workInProgress.return,</span><br><span class="line">        workInProgress,</span><br><span class="line">        thrownValue,</span><br><span class="line">        renderExpirationTime,</span><br><span class="line">      );</span><br><span class="line">      workInProgress = completeUnitOfWork(workInProgress);</span><br><span class="line">   ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://github.com/facebook/react/blob/f523b2e0d369e3f42938b56784f9ce1990838753/packages/react-reconciler/src/ReactFiberThrow.js#L178" target="_blank" rel="noopener">throwException</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">do &#123;</span><br><span class="line">    switch (workInProgress.tag) &#123;</span><br><span class="line">      ....</span><br><span class="line">      case ClassComponent:</span><br><span class="line">        // Capture and retry</span><br><span class="line">        const errorInfo = value;</span><br><span class="line">        const ctor = workInProgress.type;</span><br><span class="line">        const instance = workInProgress.stateNode;</span><br><span class="line">        if (</span><br><span class="line">          (workInProgress.effectTag &amp; DidCapture) === NoEffect &amp;&amp;</span><br><span class="line">          (typeof ctor.getDerivedStateFromError === &apos;function&apos; ||</span><br><span class="line">            (instance !== null &amp;&amp;</span><br><span class="line">              typeof instance.componentDidCatch === &apos;function&apos; &amp;&amp;</span><br><span class="line">              !isAlreadyFailedLegacyErrorBoundary(instance)))</span><br><span class="line">        ) &#123;</span><br><span class="line">          workInProgress.effectTag |= ShouldCapture;</span><br><span class="line">          workInProgress.expirationTime = renderExpirationTime;</span><br><span class="line">          // Schedule the error boundary to re-render using updated state</span><br><span class="line">          const update = createClassErrorUpdate(</span><br><span class="line">            workInProgress,</span><br><span class="line">            errorInfo,</span><br><span class="line">            renderExpirationTime,</span><br><span class="line">          );</span><br><span class="line">          enqueueCapturedUpdate(workInProgress, update);</span><br><span class="line">          return;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>throwException 函数分为两部分<br>1、遍历当前异常节点的所有父节点，找到对应的错误信息（错误名称、调用栈等），这部分代码在上面中没有展示出来</p>
+<p>2、第二部分是遍历当前异常节点的所有父节点，判断各节点的类型，主要还是上面提到的两种类型，这里重点讲 ClassComponent 类型，判断该节点是否是异常边界组件（通过判断是否存在 componentDidCatch 生命周期函数等），如果是找到异常边界组件，则调用 createClassErrorUpdate 函数新建 update，并将此 update 放入此节点的异常更新队列中，在后续更新中，会更新此队列中的更新工作</p>
+<h4 id="commit-阶段-1"><a href="#commit-阶段-1" class="headerlink" title="commit 阶段"></a>commit 阶段</h4><p>ReactFiberWorkLoop 中的<a href="https://github.com/facebook/react/blob/e039e690b5c45c458dd4026f3db16bac18ed0e47/packages/react-reconciler/src/ReactFiberWorkLoop.js#L1709" target="_blank" rel="noopener">finishConcurrentRender</a>=》<br><a href="https://github.com/facebook/react/blob/e039e690b5c45c458dd4026f3db16bac18ed0e47/packages/react-reconciler/src/ReactFiberWorkLoop.js#L1709" target="_blank" rel="noopener">commitRoot</a>=》<br><a href="https://github.com/facebook/react/blob/e039e690b5c45c458dd4026f3db16bac18ed0e47/packages/react-reconciler/src/ReactFiberWorkLoop.js#L1718" target="_blank" rel="noopener">commitRootImpl</a>=》<a href="https://github.com/facebook/react/blob/e039e690b5c45c458dd4026f3db16bac18ed0e47/packages/react-reconciler/src/ReactFiberWorkLoop.js#L2280" target="_blank" rel="noopener">captureCommitPhaseError</a></p>
+<p>commit 被分为几个子阶段，每个阶段都 try catch 调用了一次 captureCommitPhaseError</p>
+<ol>
+<li>突变(mutate)前阶段：我们在突变前先读出主树的状态，getSnapshotBeforeUpdate 在这里被调用</li>
+<li>突变阶段：我们在这个阶段更改主树，完成 WIP 树转变为 current 树</li>
+<li>样式阶段：调用从被更改后主树读取的 effect</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">export function captureCommitPhaseError(sourceFiber: Fiber, error: mixed) &#123;</span><br><span class="line">  if (sourceFiber.tag === HostRoot) &#123;</span><br><span class="line">    // Error was thrown at the root. There is no parent, so the root</span><br><span class="line">    // itself should capture it.</span><br><span class="line">    captureCommitPhaseErrorOnRoot(sourceFiber, sourceFiber, error);</span><br><span class="line">    return;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  let fiber = sourceFiber.return;</span><br><span class="line">  while (fiber !== null) &#123;</span><br><span class="line">    if (fiber.tag === HostRoot) &#123;</span><br><span class="line">      captureCommitPhaseErrorOnRoot(fiber, sourceFiber, error);</span><br><span class="line">      return;</span><br><span class="line">    &#125; else if (fiber.tag === ClassComponent) &#123;</span><br><span class="line">      const ctor = fiber.type;</span><br><span class="line">      const instance = fiber.stateNode;</span><br><span class="line">      if (</span><br><span class="line">        typeof ctor.getDerivedStateFromError === &apos;function&apos; ||</span><br><span class="line">        (typeof instance.componentDidCatch === &apos;function&apos; &amp;&amp;</span><br><span class="line">          !isAlreadyFailedLegacyErrorBoundary(instance))</span><br><span class="line">      ) &#123;</span><br><span class="line">        const errorInfo = createCapturedValue(error, sourceFiber);</span><br><span class="line">        const update = createClassErrorUpdate(</span><br><span class="line">          fiber,</span><br><span class="line">          errorInfo,</span><br><span class="line">          // TODO: This is always sync</span><br><span class="line">          Sync,</span><br><span class="line">        );</span><br><span class="line">        enqueueUpdate(fiber, update);</span><br><span class="line">        const root = markUpdateTimeFromFiberToRoot(fiber, Sync);</span><br><span class="line">        if (root !== null) &#123;</span><br><span class="line">          ensureRootIsScheduled(root);</span><br><span class="line">          schedulePendingInteractions(root, Sync);</span><br><span class="line">        &#125;</span><br><span class="line">        return;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    fiber = fiber.return;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>captureCommitPhaseError 函数做的事情和上部分的 throwException 类似，遍历当前异常节点的所有父节点，找到异常边界组件（有 componentDidCatch 生命周期函数的组件），新建 update，在 update.callback 中调用组件的 componentDidCatch 生命周期函数。</p>
+<p>细心的小伙伴应该注意到，throwException 和 captureCommitPhaseError 在遍历节点时，是从异常节点的父节点开始遍历，所以异常捕获一般由拥有 componentDidCatch 或 getDerivedStateFromError 的异常边界组件进行包裹，而其是无法捕获并处理自身的报错。</p>
+<!--2、commit阶段的 commitRoot 函数，对应异常处理方法是 dispatch-->
+
+<h2 id="Hook-相关"><a href="#Hook-相关" class="headerlink" title="Hook 相关"></a>Hook 相关</h2><h3 id="Function-Component-和-Class-Component"><a href="#Function-Component-和-Class-Component" class="headerlink" title="Function Component 和 Class Component"></a>Function Component 和 Class Component</h3><p>Class component 劣势</p>
+<ol>
+<li>状态逻辑难复用：在组件之间复用状态逻辑很难，可能要用到 render props （渲染属性）或者 HOC（高阶组件），但无论是渲染属性，还是高阶组件，都会在原先的组件外包裹一层父容器（一般都是 div 元素），导致层级冗余 趋向复杂难以维护：</li>
+<li>在生命周期函数中混杂不相干的逻辑（如：在 componentDidMount 中注册事件以及其他的逻辑，在 componentWillUnmount 中卸载事件，这样分散不集中的写法，很容易写出 bug ） 类组件中到处都是对状态的访问和处理，导致组件难以拆分成更小的组件</li>
+<li>this 指向问题：父组件给子组件传递函数时，必须绑定 this</li>
+</ol>
+<p>但是在 16.8 之前 react 的函数式组件十分羸弱，基本只能作用于纯展示组件，主要因为缺少 state 和生命周期。</p>
+<p>hooks 优势</p>
+<ul>
+<li>能优化类组件的三大问题</li>
+<li>能在无需修改组件结构的情况下复用状态逻辑（自定义 Hooks ）</li>
+<li>能将组件中相互关联的部分拆分成更小的函数（比如设置订阅或请求数据）</li>
+<li>副作用的关注点分离：副作用指那些没有发生在数据向视图转换过程中的逻辑，如 ajax 请求、访问原生 dom 元素、本地持久化缓存、绑定/解绑事件、添加订阅、设置定时器、记录日志等。以往这些副作用都是写在类组件生命周期函数中的。而 useEffect 在全部渲染完毕后才会执行，useLayoutEffect 会在浏览器 layout 之后，painting 之前执行。</li>
+</ul>
+<h3 id="capture-props-和-capture-value-特性"><a href="#capture-props-和-capture-value-特性" class="headerlink" title="capture props 和 capture value 特性"></a>capture props 和 capture value 特性</h3><h4 id="capture-props"><a href="#capture-props" class="headerlink" title="capture props"></a>capture props</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">class ProfilePage extends React.Component &#123;</span><br><span class="line">  showMessage = () =&gt; &#123;</span><br><span class="line">    alert(&quot;Followed &quot; + this.props.user);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  handleClick = () =&gt; &#123;</span><br><span class="line">    setTimeout(this.showMessage, 3000);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  render() &#123;</span><br><span class="line">    return &lt;button onClick=&#123;this.handleClick&#125;&gt;Follow&lt;/button&gt;;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">function ProfilePage(props) &#123;</span><br><span class="line">  const showMessage = () =&gt; &#123;</span><br><span class="line">    alert(&quot;Followed &quot; + props.user);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  const handleClick = () =&gt; &#123;</span><br><span class="line">    setTimeout(showMessage, 3000);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  return &lt;button onClick=&#123;handleClick&#125;&gt;Follow&lt;/button&gt;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这两个组件都描述了同一个逻辑：点击按钮 3 秒后 alert 父级传入的用户名。</p>
+<p>那么 React 文档中描述的 props 不是不可变（Immutable） 数据吗？为啥在运行时还会发生变化呢？</p>
+<p>原因在于，虽然 props 不可变，是 this 在 Class Component 中是可变的，因此 this.props 的调用会导致每次都访问最新的 props。</p>
+<p>无可厚非，为了在生命周期和 render 重能拿到最新的版本 react 本身会实时更改 this，这是 this 在 class 组件的本职。</p>
+<p>这揭露了关于用户界面的有趣观察，如果我们说 ui 从概念上是一个当前应用状态的函数，事件处理就是 render 结果的一部分，我们的事件处理属于拥有特定 props 或 state 的 render。每次 Render 的内容都会形成一个快照并保留下来，因此当状态变更而 Rerender 时，就形成了 N 个 Render 状态，而每个 Render 状态都拥有自己固定不变的 Props 与 State。</p>
+<p>然而在 setTimeout 的回调中获取 this.props 会打断这种的关联，失去了与某一特定 render 绑定，所以也失去了正确的 props。</p>
+<p>而 Function Component 不存在 this.props 的语法，因此 props 总是不可变的。</p>
+<p><a href="https://codesandbox.io/s/pjqnl16lm7" target="_blank" rel="noopener">测试地址</a></p>
+<h4 id="hook-中的-capture-value"><a href="#hook-中的-capture-value" class="headerlink" title="hook 中的 capture value"></a>hook 中的 capture value</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">function MessageThread() &#123;</span><br><span class="line">  const [message, setMessage] = useState(&quot;&quot;);</span><br><span class="line"></span><br><span class="line">  const showMessage = () =&gt; &#123;</span><br><span class="line">    alert(&quot;You said: &quot; + message);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  const handleSendClick = () =&gt; &#123;</span><br><span class="line">    setTimeout(showMessage, 3000);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  const handleMessageChange = e =&gt; &#123;</span><br><span class="line">    setMessage(e.target.value);</span><br><span class="line">  &#125;;</span><br><span class="line"></span><br><span class="line">  return (</span><br><span class="line">    &lt;&gt;</span><br><span class="line">      &lt;input value=&#123;message&#125; onChange=&#123;handleMessageChange&#125; /&gt;</span><br><span class="line">      &lt;button onClick=&#123;handleSendClick&#125;&gt;Send&lt;/button&gt;</span><br><span class="line">    &lt;/&gt;</span><br><span class="line">  );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>hook 重同样有 capture value，每次渲染都有自己的 Props and State，如果要时刻获取最新的值，规避 capture value 特性，可以用 useRef</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">const lastest = useRef(&quot;&quot;);</span><br><span class="line"></span><br><span class="line">const showMessage = () =&gt; &#123;</span><br><span class="line">    alert(&quot;You said: &quot; + lastest.current);</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">const handleSendClick = () =&gt; &#123;</span><br><span class="line">    setTimeout(showMessage, 3000);</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">const handleMessageChange = e =&gt; &#123;</span><br><span class="line">    lastest.current = e.target.value;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://codesandbox.io/s/93m5mz9w24" target="_blank" rel="noopener">测试地址</a></p>
+<h3 id="Hooks-实现原理"><a href="#Hooks-实现原理" class="headerlink" title="Hooks 实现原理"></a>Hooks 实现原理</h3><p>在上面 fiber 结构分析可以看出现在的 Class component 的 state 和 props 是记录在 fiber 上的,在 fiber 更新后才会更新到 component 的 this.state 和 props 里面，而并不是 class component 自己调理的过程。这也给了实现 hooks 的方便，因为 hooks 是放在 function component 里面的，他没有自己的 this，但我们本身记录 state 和 props 就不是放在 class component this 上面，而是在 fiber 上面，所以我们有能力记录状态之后，也有能力让 function component 更新过程当中拿到更新之后的 state。</p>
+<h3 id="React-依赖于-Hook-的调用顺序"><a href="#React-依赖于-Hook-的调用顺序" class="headerlink" title="React 依赖于 Hook 的调用顺序"></a>React 依赖于 Hook 的调用顺序</h3><p>日常调用三次</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">function Form() &#123;</span><br><span class="line">  const [hero, setHero] = useState(&apos;iron man&apos;);</span><br><span class="line">  if(hero)&#123;</span><br><span class="line">    const [surHero, setSurHero] = useState(&apos;Captain America&apos;);</span><br><span class="line">  &#125;</span><br><span class="line">  const [nbHero, setNbHero] = useState(&apos;hulk&apos;);</span><br><span class="line">  // ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>来看看我们的 useState 是怎么实现的</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">// useState 源码中的链表实现</span><br><span class="line">import React from &apos;react&apos;;</span><br><span class="line">import ReactDOM from &apos;react-dom&apos;;</span><br><span class="line"></span><br><span class="line">let firstWorkInProgressHook = &#123;memoizedState: null, next: null&#125;;</span><br><span class="line">let workInProgressHook;</span><br><span class="line"></span><br><span class="line">function useState(initState) &#123;</span><br><span class="line">    let currentHook = workInProgressHook.next ? workInProgressHook.next : &#123;memoizedState: initState, next: null&#125;;</span><br><span class="line"></span><br><span class="line">    function setState(newState) &#123;</span><br><span class="line">        currentHook.memoizedState = newState;</span><br><span class="line">        render();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	// 假如某个 useState 没有执行，会导致Next指针移动出错，数据存取出错</span><br><span class="line">    if (workInProgressHook.next) &#123;</span><br><span class="line">        // 这里只有组件刷新的时候，才会进入</span><br><span class="line">        // 根据书写顺序来取对应的值</span><br><span class="line">        // console.log(workInProgressHook);</span><br><span class="line">        workInProgressHook = workInProgressHook.next;</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        // 只有在组件初始化加载时，才会进入</span><br><span class="line">        // 根据书写顺序，存储对应的数据</span><br><span class="line">        // 将 firstWorkInProgressHook 变成一个链表结构</span><br><span class="line">        workInProgressHook.next = currentHook;</span><br><span class="line">        // 将 workInProgressHook 指向 &#123;memoizedState: initState, next: null&#125;</span><br><span class="line">        workInProgressHook = currentHook;</span><br><span class="line">        // console.log(firstWorkInProgressHook);</span><br><span class="line">    &#125;</span><br><span class="line">    return [currentHook.memoizedState, setState];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function Counter() &#123;</span><br><span class="line">    // 每次组件重新渲染的时候，这里的 useState 都会重新执行</span><br><span class="line">    const [name, setName] = useState(&apos;计数器&apos;);</span><br><span class="line">    const [number, setNumber] = useState(0);</span><br><span class="line">    return (</span><br><span class="line">        &lt;&gt;</span><br><span class="line">            &lt;p&gt;&#123;name&#125;:&#123;number&#125;&lt;/p&gt;</span><br><span class="line">            &lt;button onClick=&#123;() =&gt; setName(&apos;新计数器&apos; + Date.now())&#125;&gt;新计数器&lt;/button&gt;</span><br><span class="line">            &lt;button onClick=&#123;() =&gt; setNumber(number + 1)&#125;&gt;+&lt;/button&gt;</span><br><span class="line">        &lt;/&gt;</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">function render() &#123;</span><br><span class="line">    // 每次重新渲染的时候，都将 workInProgressHook 指向 firstWorkInProgressHook</span><br><span class="line">    workInProgressHook = firstWorkInProgressHook;</span><br><span class="line">    ReactDOM.render(&lt;Counter/&gt;, document.getElementById(&apos;root&apos;));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">render();</span><br></pre></td></tr></table></figure>
+
+<p>我们来还原一下这个过程<br>大家看完应该了解，当下设置 currentHook 其实是上个 workInProgressHook 通过 next 指针进行绑定获取的，所以如果在条件语句中打破了调用顺序，将会导致 next 指针指向出现偏差，这个时候你传进去的 setState 是无法正确改变对应的值，因为</p>
+<!--### 闭包-->
+<!--咦，闭包跟hooks有关系吗？-->
+<!--简单探讨一下为啥-->
+
+<p>各种自定义封装的 hooks =》<a href="https://github.com/streamich/react-use" target="_blank" rel="noopener">react-use</a></p>
+<p><a href="https://overreacted.io/zh-hans/why-do-hooks-rely-on-call-order/" target="_blank" rel="noopener">为什么顺序调用对 React Hooks 很重要？</a></p>
+<!--## Question:-->
+<!--- 为什么使用深度优先遍历DFS？-->
+<!--- -->
+
+<h2 id="THE-END"><a href="#THE-END" class="headerlink" title="THE END"></a>THE END</h2><blockquote>
+<p>第二次在掘金上发文，小陈也是 react 小菜 🐔，希望能跟大家一起讨论学习，向高级前端架构进阶！让我们一起爱上 fiber</p>
+</blockquote>
+<h2 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h2><p><a href="https://github.com/dawn-plex/translate/blob/master/articles/the-how-and-why-on-reacts-usage-of-linked-list-in-fiber-to-walk-the-components-tree.md" target="_blank" rel="noopener">如何以及为什么 React Fiber 使用链表遍历组件树</a><br><a href="https://zhuanlan.zhihu.com/p/37095662" target="_blank" rel="noopener">React Fiber 架构</a><br><a href="https://www.jianshu.com/p/4a3a09925a28" target="_blank" rel="noopener">React 源码解析 - reactScheduler 异步任务调度</a><br><a href="https://zhuanlan.zhihu.com/p/40160380" target="_blank" rel="noopener">展望 React 17，回顾 React 往事 全面 深入</a><br><a href="https://juejin.im/post/5dadc6045188255a270a0f85" target="_blank" rel="noopener">这可能是最通俗的 React Fiber(时间分片) 打开方式</a>=&gt;调度策略<br><a href="https://segmentfault.com/a/1190000017483690?utm_source=tag-newest" target="_blank" rel="noopener">全面了解 React 新功能: Suspense 和 Hooks 生命周期</a><br><a href="https://github.com/crazylxr/deep-in-react/blob/master/analysis/%E8%AF%A6%E8%B0%88%20React%20Fiber%20%E6%9E%B6%E6%9E%84(1).md" target="_blank" rel="noopener">详谈 React Fiber 架构(1)</a></p>
+<!--[componentdidcatch](https://github.com/HuJiaoHJ/blog/issues/12)-->
+
+<!--dan talk about concurrent-->
+<!--[https://twitter.com/dan_abramov/status/1120974978466439168]-->
+<!-- The goal is to be responsive regardless of whether CPU or IO is lagging behind. So you want to *interleave* CPU and IO work. Let components render “in memory” while data for others is still streaming in, and show the final result when it’s ready. Not “fetch and mount”.-->
+
+<!-- react-spring 演示了 React Concurrent-Mode 带来的渲染提升-->
+<!-- https://twitter.com/0xca0a/status/1199997552466288641-->
+
+<!-- [你应该知道的requestIdleCallback](https://segmentfault.com/a/1190000014457824)-->
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/11/14/react-native%E9%9B%86%E6%88%90%E5%BE%AE%E4%BF%A1sdk-%E5%AE%9E%E7%8E%B0%E4%B8%80%E6%AC%A1%E8%AE%A2%E9%98%85%E5%8A%9F%E8%83%BD/" rel="next" title="react native集成微信sdk 实现一次订阅功能">
+                <i class="fa fa-chevron-left"></i> react native集成微信sdk 实现一次订阅功能
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">intopiece</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%20%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#react-协调是什么"><span class="nav-number">1.</span> <span class="nav-text">react 协调是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么要重写协调"><span class="nav-number">2.</span> <span class="nav-text">为什么要重写协调</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Fiber-你是个啥（第四音"><span class="nav-number">3.</span> <span class="nav-text">Fiber 你是个啥（第四音</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#定义："><span class="nav-number">3.0.1.</span> <span class="nav-text">定义：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#针对其定义我们来进行拓展："><span class="nav-number">3.0.2.</span> <span class="nav-text">针对其定义我们来进行拓展：</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#虚拟堆栈帧："><span class="nav-number">3.0.2.1.</span> <span class="nav-text">虚拟堆栈帧：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#JavaScript-的执行模型：call-stack"><span class="nav-number">3.0.2.2.</span> <span class="nav-text">JavaScript 的执行模型：call stack</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#可控的调用栈"><span class="nav-number">3.0.2.3.</span> <span class="nav-text">可控的调用栈</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#具备扁平化的链表数据存储结构的-js-对象："><span class="nav-number">3.0.3.</span> <span class="nav-text">具备扁平化的链表数据存储结构的 js 对象：</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#链表结构"><span class="nav-number">3.1.</span> <span class="nav-text">链表结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#current-与-workInProgress"><span class="nav-number">3.2.</span> <span class="nav-text">current 与 workInProgress</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Update"><span class="nav-number">3.3.</span> <span class="nav-text">Update</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#UpdateQueue"><span class="nav-number">3.3.1.</span> <span class="nav-text">UpdateQueue</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Updater"><span class="nav-number">3.3.2.</span> <span class="nav-text">Updater</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Effect-list"><span class="nav-number">3.4.</span> <span class="nav-text">Effect list</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#How-it-work"><span class="nav-number">4.</span> <span class="nav-text">How it work</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#核心目标"><span class="nav-number">4.0.1.</span> <span class="nav-text">核心目标</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更新过程概述"><span class="nav-number">4.1.</span> <span class="nav-text">更新过程概述</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#reconciliation"><span class="nav-number">4.1.1.</span> <span class="nav-text">reconciliation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#commit-阶段"><span class="nav-number">4.1.2.</span> <span class="nav-text">commit 阶段</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分配优先级"><span class="nav-number">4.2.</span> <span class="nav-text">分配优先级</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#执行优先级"><span class="nav-number">4.3.</span> <span class="nav-text">执行优先级</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#生命周期"><span class="nav-number">5.</span> <span class="nav-text">生命周期</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#为什么新的生命周期用-static"><span class="nav-number">5.0.1.</span> <span class="nav-text">为什么新的生命周期用 static</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#getDerivedStateFromError-和-componentDidCatch-之间的区别是什么？"><span class="nav-number">5.0.2.</span> <span class="nav-text">getDerivedStateFromError 和 componentDidCatch 之间的区别是什么？</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Suspense"><span class="nav-number">6.</span> <span class="nav-text">Suspense</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#用法"><span class="nav-number">6.1.</span> <span class="nav-text">用法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原理"><span class="nav-number">6.2.</span> <span class="nav-text">原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#如何达成异常捕获"><span class="nav-number">6.2.1.</span> <span class="nav-text">如何达成异常捕获</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#reconciliation-阶段的异常捕获"><span class="nav-number">6.2.2.</span> <span class="nav-text">reconciliation 阶段的异常捕获</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#commit-阶段-1"><span class="nav-number">6.2.3.</span> <span class="nav-text">commit 阶段</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hook-相关"><span class="nav-number">7.</span> <span class="nav-text">Hook 相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Function-Component-和-Class-Component"><span class="nav-number">7.1.</span> <span class="nav-text">Function Component 和 Class Component</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#capture-props-和-capture-value-特性"><span class="nav-number">7.2.</span> <span class="nav-text">capture props 和 capture value 特性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#capture-props"><span class="nav-number">7.2.1.</span> <span class="nav-text">capture props</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#hook-中的-capture-value"><span class="nav-number">7.2.2.</span> <span class="nav-text">hook 中的 capture value</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Hooks-实现原理"><span class="nav-number">7.3.</span> <span class="nav-text">Hooks 实现原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#React-依赖于-Hook-的调用顺序"><span class="nav-number">7.4.</span> <span class="nav-text">React 依赖于 Hook 的调用顺序</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#THE-END"><span class="nav-number">8.</span> <span class="nav-text">THE END</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考："><span class="nav-number">9.</span> <span class="nav-text">参考：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">intopiece</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

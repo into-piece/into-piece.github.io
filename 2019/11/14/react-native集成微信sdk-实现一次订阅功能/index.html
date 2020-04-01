@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="react-native," />
 
 
 
@@ -79,13 +79,19 @@
 
 
 
+<meta name="description" content="网上有大部分很多微信 sdk 集成的文档和爬坑经过，但很少是 react native，大部分都是原生的接入，我用我的血汗教训踩坑之路，希望能帮助大家快速定位解决问题。我们 rn 是需要接安卓+ios，按照我自己的尿性我肯定先讲一下较为简单的 ios 接入。  给大家个 tips，官方接入是有 demo 的！一定要配合着 demo 看 demo 地址  ios 接入文档地址  相信大部分公司都会选">
+<meta name="keywords" content="react-native">
 <meta property="og:type" content="article">
 <meta property="og:title" content="react native集成微信sdk 实现一次订阅功能">
 <meta property="og:url" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2019&#x2F;11&#x2F;14&#x2F;react-native%E9%9B%86%E6%88%90%E5%BE%AE%E4%BF%A1sdk-%E5%AE%9E%E7%8E%B0%E4%B8%80%E6%AC%A1%E8%AE%A2%E9%98%85%E5%8A%9F%E8%83%BD&#x2F;index.html">
 <meta property="og:site_name" content="intopiece">
+<meta property="og:description" content="网上有大部分很多微信 sdk 集成的文档和爬坑经过，但很少是 react native，大部分都是原生的接入，我用我的血汗教训踩坑之路，希望能帮助大家快速定位解决问题。我们 rn 是需要接安卓+ios，按照我自己的尿性我肯定先讲一下较为简单的 ios 接入。  给大家个 tips，官方接入是有 demo 的！一定要配合着 demo 看 demo 地址  ios 接入文档地址  相信大部分公司都会选">
 <meta property="og:locale" content="cn">
-<meta property="og:updated_time" content="2019-11-14T07:37:28.769Z">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;9&#x2F;18&#x2F;16d426bb06472f4c?w=1330&amp;h=545&amp;f=jpeg&amp;s=102336">
+<meta property="og:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;9&#x2F;18&#x2F;16d426bb066f88d1?w=256&amp;h=202&amp;f=bmp&amp;s=155190">
+<meta property="og:updated_time" content="2019-11-14T07:43:03.250Z">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;user-gold-cdn.xitu.io&#x2F;2019&#x2F;9&#x2F;18&#x2F;16d426bb06472f4c?w=1330&amp;h=545&amp;f=jpeg&amp;s=102336">
 
 
 
@@ -295,7 +301,77 @@
       
 
       
-        
+        <p>网上有大部分很多微信 sdk 集成的文档和爬坑经过，但很少是 react native，大部分都是原生的接入，我用我的血汗教训踩坑之路，希望能帮助大家快速定位解决问题。<br>我们 rn 是需要接安卓+ios，按照我自己的尿性我肯定先讲一下较为简单的 ios 接入。</p>
+<blockquote>
+<p>给大家个 tips，官方接入是有 demo 的！一定要配合着 demo 看 <a href="https://open.weixin.qq.com/zh_CN/htmledition/res/dev/download/sdk/WeChatSDK_sample_iOS_1.4.2.1.zip" target="_blank" rel="noopener">demo 地址</a></p>
+</blockquote>
+<h2 id="ios-接入"><a href="#ios-接入" class="headerlink" title="ios 接入"></a>ios 接入</h2><p><a href="https://open.weixin.qq.com/cgi-bin/showdocument?action=dir_list&t=resource/res_list&verify=1&id=1417694084&token=&lang=zh_CN" target="_blank" rel="noopener">文档地址</a></p>
+<ol>
+<li>相信大部分公司都会选择使用 CocoaPods 安装对应的 ios 包（CocoaPods 是专门为 iOS 工程提供第三方依赖库的管理工具，有需要了解点击=》<a href="https://cocoapods.org/" target="_blank" rel="noopener">pod 官网</a>。<br>我们根据文档在 podfile 中加入代码</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pod &apos;WechatOpenSDK&apos;</span><br></pre></td></tr></table></figure>
+
+<p>然后 cd 到 ios 目录下执行 pod install 就 oj8k</p>
+<ol start="2">
+<li>Xcode 设置 URL</li>
+</ol>
+<p>scheme(路径左边目录选中项目根文件，右边顶部选项栏选中 info，正中选项中下拉选中 URL Type，identifier 输入包名，URL scheme 输入注册的 id。如果多个 id 可以用逗号隔开（如下图</p>
+<p>解释：接下来这一步是为了让实现跳转微信 app 并带去注册的 id。众所周知 iOS 是一个自闭的系统，应用之间是不能互相存储，读取文件。为了满足应用的通讯，URL Scheme 来实现了这个功能。通过各个 APP 设计的符合苹果的统一规范的 URL Scheme，Url Scheme 是可以用来在各种应用之间传递信息。<a href="https://www.jianshu.com/p/e1ce140a622f" target="_blank" rel="noopener">浅析 URLScheme 在 iOS 中存在的意义</a></p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/9/18/16d426bb06472f4c?w=1330&h=545&f=jpeg&s=102336" alt="Xcode设置URL scheme"></p>
+<ol start="3">
+<li>借鉴 demo，复制==WXApiManager==到目录中，我们需要其进行发送 wx 请求成功后回调的处理。其本身头文件已然 import WXApi.h 头文件，并增加 WXApiDelegate 协议。这里因为注册方法多次调用，我们可以抽象一个方法放在 WXApiManager 中，AppDelegate 中的注册调用 WXApiManager 的方法</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">+ (BOOL) registerApp &#123;</span><br><span class="line">  NSString* appId = xxx;</span><br><span class="line">  return [WXApi registerApp:appId];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>第三步到 AppDelegate 的<a href="https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1622921-application?language=objc" target="_blank" rel="noopener">didFinishLaunchingWithOptions</a>注册 id.</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">//头部引入</span><br><span class="line">#import &quot;WXApiManager.h&quot;</span><br><span class="line"></span><br><span class="line">//didFinishLaunchingWithOptions中加入</span><br><span class="line">//向微信注册</span><br><span class="line">[WXApiManager registerApp];</span><br><span class="line">return YES;</span><br><span class="line"></span><br><span class="line">//并且最后实现代理WXApiDelegate</span><br><span class="line">//重写handleOpenURL和openURL方法</span><br><span class="line">- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url &#123;</span><br><span class="line">  return  [WXApi handleOpenURL:url delegate:[WXApiManager sharedManager]];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation &#123;</span><br><span class="line">  return [WXApi handleOpenURL:url delegate:[WXApiManager sharedManager]];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置完成我们开始开发"><a href="#配置完成我们开始开发" class="headerlink" title="配置完成我们开始开发"></a>配置完成我们开始开发</h3><h4 id="这里先理一理我们的调用过程"><a href="#这里先理一理我们的调用过程" class="headerlink" title="这里先理一理我们的调用过程"></a>这里先理一理我们的调用过程</h4><ol>
+<li>用户点击 js 处理事件对原生发起请求</li>
+<li>原生响应调用 wx sdk 的 sendReq 跳转到微信，弹出对应模版的微信信息接受提示</li>
+<li>用户点击确认则跳回 app，触发回调 onResp 返回 openid 等信息，这个 openid 就是我们需要的用户唯一标示</li>
+<li>js 调用后台提供的接口，后台根据 openid 发送订阅信息到对应微信用户。</li>
+</ol>
+<h5 id="好我们来看看到底每个步骤怎么达成，存在什么坑："><a href="#好我们来看看到底每个步骤怎么达成，存在什么坑：" class="headerlink" title="好我们来看看到底每个步骤怎么达成，存在什么坑："></a>好我们来看看到底每个步骤怎么达成，存在什么坑：</h5><p>第一步：js 发送事件到原生，毫无疑问我们用官方推荐的方式 RCT_EXPORT_METHOD()就 ok =&gt;<a href="https://reactnative.cn/docs/native-modules-ios/" target="_blank" rel="noopener">原生模块</a>。</p>
+<p>但这里我有一个坑，我这边是 js 发送的 scene 和 temleteId 给原生事件，但这个过程中我 js 发送的 scene 本来为 1，却不知道为啥变成一串不认得的数字，这个是我 oc 在处理 sence 值时不经意进行了值转换，我是在抓包中才发现 scene 变化，解决方案是在原生中写死这个 scene。</p>
+<p>这里我们还可以用 RCTPromiseResolveBlock 设置 promise，当发送 wxapi sendReq 的时候我们可以捕捉到返回值，异常可以进行抛出，await 事件进行 loading 或其余操作。<br>贴上代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">RCT_EXPORT_METHOD(sendSubscribeRequest:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)</span><br><span class="line">&#123;</span><br><span class="line">  dispatch_sync(dispatch_get_main_queue(), ^&#123;</span><br><span class="line">    WXSubscribeMsgReq *req = [[WXSubscribeMsgReq alloc] init];</span><br><span class="line">    req.scene = 1;</span><br><span class="line">    req.reserved = @&quot;xxx&quot;;</span><br><span class="line">    req.templateId = @&quot;xxx&quot;;</span><br><span class="line">    BOOL result = [WXApi sendReq:req];</span><br><span class="line">    result ? resolve(@&#123;@&quot;code&quot;: @0&#125;) : reject(@&quot;1&quot;, @&quot;error&quot;, nil);</span><br><span class="line">  &#125;);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//解释</span><br><span class="line">dispatch_sync 和 dispatch_async 区别：</span><br><span class="line"></span><br><span class="line">dispatch_async(queue,block) async 异步队列，dispatch_async 函数会立即返回, block会在后台异步执行。</span><br><span class="line"></span><br><span class="line">dispatch_sync(queue,block) sync 同步队列，dispatch_sync 函数不会立即返回，即阻塞当前线程,等待 block同步执行完成。</span><br><span class="line"></span><br><span class="line">GCD Queue 分为三种：</span><br><span class="line"></span><br><span class="line">1，The main queue ：主队列，主线程就是在个队列中。</span><br><span class="line"></span><br><span class="line">2，Global queues ： 全局并发队列。</span><br><span class="line"></span><br><span class="line">3，用户队列:是用函数 dispatch_queue_create 创建的自定义队列</span><br></pre></td></tr></table></figure>
+
+<p>第二步：第二部只要保证好 scene 写死，URL scheme 配置等前置条件设置妥当基本可以跳转成功</p>
+<p>第三步：在 WXApiDelegate 实现的，onResp 模仿 demo 写法就 ok，拿到了回调我们需要将数据传回到 js 进行请求，这里官方推荐用的方式是<a href="https://reactnative.cn/docs/native-modules-ios/#%E7%BB%99-javascript-%E7%AB%AF%E5%8F%91%E9%80%81%E4%BA%8B%E4%BB%B6" target="_blank" rel="noopener">RCTEventEmitter</a>，实现 suppportEvents 方法并调用 self sendEventWithName，我跟着官网做完之后发现，无法让 WXApiManager 的回调执行我所定义的，返回到 js 的方法，这里我换了一种方法，用了之前我们公司自己封装好的 RCTDeviceEventEmitter 公共方法。</p>
+<p>第四步：就是 js 获取微信回调的参数发送请求，贴上代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">import &#123; DeviceEventEmitter &#125; from &apos;react-native&apos;;</span><br><span class="line">//...</span><br><span class="line">componentDidMount() &#123;</span><br><span class="line">    this.listener = DeviceEventEmitter.addListener(&apos;getWxCallback&apos;, data =&gt; &#123;</span><br><span class="line">      // handle event.</span><br><span class="line">      console.log(data, &apos;==========DeviceEventEmitter back data&apos;);</span><br><span class="line">      this.sendWxReq(data);</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="安卓"><a href="#安卓" class="headerlink" title="安卓"></a>安卓</h2><p>安卓对比 ios 着实要麻烦，从一开始接触 rn，进入原生的坑之后一直对安卓开发敬而远之，总会出现莫名其妙的 bug，无论是运行环境和开发体验都。。。<br>让我们先进入安卓的环境配置，照旧先按照官网的配</p>
+<p>相关文档</p>
+<ul>
+<li><a href="https://open.weixin.qq.com/cgi-bin/showdocument?action=dir_list&t=resource/res_list&verify=1&id=1417751808&token=&lang=zh_CN" target="_blank" rel="noopener">Android 接入指南
+</a></li>
+<li><a href="https://blog.csdn.net/zhangjg_blog/article/details/10923643" target="_blank" rel="noopener"><br>Android 中 Activity 四种启动模式和 taskAffinity 属性详解</a></li>
+</ul>
+<p>首先我们先解决发送的问题，我们按 rn 官网的<a href="https://reactnative.cn/docs/native-modules-android/#%E5%8F%91%E9%80%81%E4%BA%8B%E4%BB%B6%E5%88%B0-javascript" target="_blank" rel="noopener">发送方案</a>=》RCTDeviceEventEmitter<br>照旧也是引入<a href="https://reactnative.cn/docs/native-modules-android/#promises" target="_blank" rel="noopener">promise</a>方便监测微信接口调用情况和方便报错,这一步应该相对简单。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">// 发送wx订阅方法</span><br><span class="line">@ReactMethod</span><br><span class="line">public void sendSubscribeRequest(final Promise promise)&#123;</span><br><span class="line">    SubscribeMessage.Req req = new SubscribeMessage.Req();</span><br><span class="line">    req.scene = 1;</span><br><span class="line">    req.templateID = Constant.WX_SUBSCRIBE_TEMPLATE_ID;</span><br><span class="line">    req.reserved = &quot;xxx&quot;;</span><br><span class="line">    IWXAPI api = WXHelper.getInstance();</span><br><span class="line">    Boolean result = api.sendReq(req);</span><br><span class="line">    if (result) &#123;</span><br><span class="line">        WritableMap info = Arguments.createMap();</span><br><span class="line">        info.putString(&quot;code&quot;, &quot;0&quot;);</span><br><span class="line">        promise.resolve(info);</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line">    promise.reject(&quot;1&quot;, &quot;error&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们按照 demo 引入 WXEntryActivity 文件,文件一定要放在名叫 wxapi 的文件夹下</p>
+<blockquote>
+<p>注意文件存放的路径，必须在打包的包名 applicationId 对应的文件目录下（这个 applicationId 可以在项目 build.gradle 中的 defaultConfig 下的 applicationId 看到。</p>
+</blockquote>
+<p><img src="https://user-gold-cdn.xitu.io/2019/9/18/16d426bb066f88d1?w=256&h=202&f=bmp&s=155190" alt="wx"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">// 这里是根据demo和官方工作人员对于存在的bug修复的方案</span><br><span class="line">// 这一步设置比较关键，不然调不起WXEntryActivity的回调</span><br><span class="line">// activity的android:name这一个我看很多设置是不写的包名，但我发现不写无法回调成功，一定要写上</span><br><span class="line">//因为我们这边打包不止一个包名，所以用$&#123;applicationId&#125;指代，而且对应的wxapi文件夹需要存放到对应的路径上，不然返回无法回调成功！</span><br><span class="line"></span><br><span class="line"> &lt;activity</span><br><span class="line">    android:name=&quot;$&#123;applicationId&#125;.wxapi.WXEntryActivity&quot;</span><br><span class="line">    android:exported=&quot;true&quot;</span><br><span class="line">    android:taskAffinity=&quot;$&#123;applicationId&#125;&quot;</span><br><span class="line">    android:launchMode=&quot;singleTask&quot;</span><br><span class="line">    android:theme=&quot;@style/Theme.AppCompat.Light.NoActionBar&quot;&gt;</span><br><span class="line">    &lt;intent-filter&gt;</span><br><span class="line">        &lt;action android:name=&quot;android.intent.action.VIEW&quot; /&gt;</span><br><span class="line">        &lt;category android:name=&quot;android.intent.category.DEFAULT&quot; /&gt;</span><br><span class="line">    &lt;/intent-filter&gt;</span><br><span class="line">&lt;/activity&gt;</span><br></pre></td></tr></table></figure>
+
+<p>来看一下整理后的 WXEntryActivity 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">package com.xxx;</span><br><span class="line">import android.app.Activity;</span><br><span class="line">import android.content.Intent;</span><br><span class="line">import android.os.Bundle;</span><br><span class="line">import android.util.Log;</span><br><span class="line"></span><br><span class="line">import com.facebook.react.bridge.Arguments;</span><br><span class="line">import com.facebook.react.bridge.WritableMap;</span><br><span class="line">import com.tencent.mm.opensdk.constants.ConstantsAPI;</span><br><span class="line">import com.tencent.mm.opensdk.modelbase.BaseReq;</span><br><span class="line">import com.tencent.mm.opensdk.modelbase.BaseResp;</span><br><span class="line">import com.tencent.mm.opensdk.modelbiz.SubscribeMessage;</span><br><span class="line">import com.tencent.mm.opensdk.openapi.IWXAPI;</span><br><span class="line">import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler;</span><br><span class="line">import static com.xxx.xxxmodule.wechatModule.sendEvent; // 获取微信订阅回调的处理事件</span><br><span class="line"></span><br><span class="line">// 实现IWXAPIEventHandler接口，微信发送的请求将回调到onReq方法，发送到微信请求的响应结果将回调到onResp方法</span><br><span class="line">public class WXEntryBaseActivity extends Activity implements IWXAPIEventHandler&#123;</span><br><span class="line">	private static final String TAG = &quot;WXEntryBaseActivity&quot;;</span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">	public void onCreate(Bundle savedInstanceState) &#123;</span><br><span class="line">		super.onCreate(savedInstanceState);</span><br><span class="line">		IWXAPI api =  WXAPIFactory.createWXAPI(this, Constants.APP_ID, false);</span><br><span class="line">		//优化后，注册api提取成一个公共方法</span><br><span class="line">		//IWXAPI api = WXHelper.getInstance();</span><br><span class="line">		api.handleIntent(getIntent(), this);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	@Override</span><br><span class="line">	protected void onNewIntent(Intent intent) &#123;</span><br><span class="line">		super.onNewIntent(intent);</span><br><span class="line">		IWXAPI api = WXHelper.getInstance();</span><br><span class="line">		setIntent(intent);</span><br><span class="line">		api.handleIntent(intent, this);</span><br><span class="line">		Log.d(TAG, &quot;onNewIntent: &quot;);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    //不写会报错。</span><br><span class="line">	@Override</span><br><span class="line">	public void onReq(BaseReq req) &#123;</span><br><span class="line">		Log.d(TAG, &quot;onReq: &quot;);</span><br><span class="line">		finish();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    // 回调成功回到这里来</span><br><span class="line">	@Override</span><br><span class="line">	public void onResp(BaseResp resp) &#123;</span><br><span class="line">		Log.d(TAG, &quot;onResp: &quot;);</span><br><span class="line">		if (resp.getType() == ConstantsAPI.COMMAND_SUBSCRIBE_MESSAGE) &#123;</span><br><span class="line">			SubscribeMessage.Resp subscribeMsgResp = (SubscribeMessage.Resp) resp;</span><br><span class="line">			String openId = subscribeMsgResp.openId;</span><br><span class="line">			if (openId != null) &#123;</span><br><span class="line">			    // 包装一个存储参数对象</span><br><span class="line">				WritableMap params = Arguments.createMap();</span><br><span class="line">				params.putString(&quot;openId&quot;, openId);</span><br><span class="line">				params.putString(&quot;templateId&quot;, subscribeMsgResp.templateID);</span><br><span class="line">				params.putInt(&quot;scene&quot;, subscribeMsgResp.scene);</span><br><span class="line">				// 调用我们的发送方法，这里我是将数据发送到js，再进行调用后台接口发送微信消息到对应微信用户</span><br><span class="line">				sendEvent(params);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		finish();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>发送的事件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public static void sendEvent(WritableMap params) &#123;</span><br><span class="line">    mContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(&quot;getWxCallback&quot;,params );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>js 调用跟 ios 的保持一致即可。</p>
+<blockquote>
+<p>小陈也是 react native 的新手，学习过程中略感社区文档和高质量指导文章的稀少，希望能跟大家一起讨论学习，向高级前端架构进阶</p>
+</blockquote>
+
       
     </div>
     
@@ -310,6 +386,12 @@
 
     <footer class="post-footer">
       
+        <div class="post-tags">
+          
+            <a href="/tags/react-native/" rel="tag"># react-native</a>
+          
+        </div>
+      
 
       
       
@@ -319,8 +401,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/11/14/hello-world/" rel="next" title="hello-world">
-                <i class="fa fa-chevron-left"></i> hello-world
+              <a href="/2019/11/14/hello-world/" rel="next" title="Hello World">
+                <i class="fa fa-chevron-left"></i> Hello World
               </a>
             
           </div>
@@ -328,6 +410,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/04/01/%E8%B5%B0%E8%BF%9Bfiber/" rel="prev" title="走进Fiber">
+                走进Fiber <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -379,8 +465,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -395,7 +490,7 @@
               
                 <a href="/archives/%20%7C%7C%20archive">
               
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">3</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -403,6 +498,15 @@
 
             
 
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
             
 
           </nav>
@@ -423,6 +527,22 @@
       </section>
 
       
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ios-接入"><span class="nav-number">1.</span> <span class="nav-text">ios 接入</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#配置完成我们开始开发"><span class="nav-number">1.1.</span> <span class="nav-text">配置完成我们开始开发</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#这里先理一理我们的调用过程"><span class="nav-number">1.1.1.</span> <span class="nav-text">这里先理一理我们的调用过程</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#好我们来看看到底每个步骤怎么达成，存在什么坑："><span class="nav-number">1.1.1.1.</span> <span class="nav-text">好我们来看看到底每个步骤怎么达成，存在什么坑：</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安卓"><span class="nav-number">2.</span> <span class="nav-text">安卓</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
 
       
 
@@ -436,7 +556,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
