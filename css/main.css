@@ -1823,7 +1823,7 @@ pre .javascript .function {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #30ebff;
+  background: #8e6ad2;
 }
 .links-of-blogroll {
   font-size: 13px;
@@ -2989,5 +2989,35 @@ pre .javascript .function {
 @media (max-width: 767px) {
   .post-body {
     text-align: justify;
+  }
+}
+@media screen and (min-width: 1200px) {
+  body {
+    background-image: url("/images/Chihiro.jpg");
+    background-repeat: repeat;
+    background-position: left;
+  }
+  .header-inner {
+    background: rgba(0,0,0,0.6);
+  }
+  .site-meta {
+    background: none;
+  }
+  .menu .menu-item a {
+    color: #fff;
+  }
+  .menu .menu-item-active a {
+    color: #555;
+  }
+  .btn:hover {
+    border-color: #782a2e;
+    color: #fff;
+    background: #782a2e;
+  }
+  .menu .menu-item a:hover,
+  .menu-item-active a {
+    background: #f9f9f9;
+    color: #555;
+    border-bottom-color: #fff;
   }
 }
